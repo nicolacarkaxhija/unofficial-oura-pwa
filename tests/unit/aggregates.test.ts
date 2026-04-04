@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeWeeklyInsight, type DayScore } from '@/lib/aggregates'
+import { computeDayRange, computeWeeklyInsight, type DayScore } from '@/lib/aggregates'
 
 // Newest-first, matching the useXxxDays hook contract the Dashboard feeds in.
 function series(scores: (number | null)[]): DayScore[] {
@@ -69,5 +69,30 @@ describe('computeWeeklyInsight', () => {
     const insight = computeWeeklyInsight(series([85, 85]))
     // Newest-first input: index 0 is the most recent day and must win the tie.
     expect(insight.best?.day).toBe('2024-03-31')
+  })
+})
+
+describe('computeDayRange', () => {
+  it('returns null for an empty list', () => {
+    expect(computeDayRange([])).toBeNull()
+  })
+
+  it('returns the same day as first and last for a single entry', () => {
+    expect(computeDayRange(['2024-06-01'])).toEqual({ first: '2024-06-01', last: '2024-06-01' })
+  })
+
+  it('finds min and max regardless of input order', () => {
+    // The worker concatenates three pillar arrays, so the input is unsorted.
+    expect(computeDayRange(['2024-03-05', '2023-12-31', '2024-06-15', '2024-01-01'])).toEqual({
+      first: '2023-12-31',
+      last: '2024-06-15',
+    })
+  })
+
+  it('handles duplicated days across pillars', () => {
+    expect(computeDayRange(['2024-02-02', '2024-02-02', '2024-02-01'])).toEqual({
+      first: '2024-02-01',
+      last: '2024-02-02',
+    })
   })
 })

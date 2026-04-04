@@ -34,6 +34,7 @@ import {
   parseMeditations,
   parseStressPoints,
 } from '../connectors/oura/parsers'
+import { computeDayRange } from '../lib/aggregates'
 
 // ─── Message Protocol ─────────────────────────────────────────────────────────
 //
@@ -222,6 +223,11 @@ async function runImport(blob: Blob): Promise<void> {
   // Step 4: Compute and persist import statistics.
   post({ type: 'progress', payload: { phase: 'Finalising…', pct: 96 } })
 
+  // Coverage range spans the three daily pillar files only — workouts,
+  // meditations and stress are sparse side-tables that never extend past the
+  // days the pillars already cover in a real Oura export.
+  const range = computeDayRange([...sleepDays, ...readinessDays, ...activityDays].map((r) => r.day))
+
   const stats: ImportStats = {
     sleepNights: sleepDays.length,
     readinessDays: readinessDays.length,
@@ -230,6 +236,8 @@ async function runImport(blob: Blob): Promise<void> {
     meditations: meditations.length,
     stressPoints: stressPoints.length,
     importedAt: new Date().toISOString(),
+    firstDay: range?.first ?? null,
+    lastDay: range?.last ?? null,
   }
 
   await db.meta.put({ key: 'importStats', value: stats })

@@ -9,6 +9,7 @@
 // at the module top-level in any non-dev path.
 
 import { db } from '@/db/client'
+import { computeDayRange } from '@/lib/aggregates'
 import { subDays, format, addMinutes, addSeconds } from 'date-fns'
 import type {
   SleepDay,
@@ -263,6 +264,10 @@ export async function seedDatabase(): Promise<void> {
     meditations: meditations.length,
     stressPoints: stressPoints.length,
     importedAt: new Date().toISOString(),
+    // Mirror the worker's coverage computation so the Settings summary works
+    // for dev-seeded data too.
+    firstDay: computeDayRange(sleepDays.map((d) => d.day))?.first ?? null,
+    lastDay: computeDayRange(sleepDays.map((d) => d.day))?.last ?? null,
   }
 
   await db.transaction('rw', db.tables, async () => {

@@ -7,7 +7,17 @@
     "clearAll": "Clear all data",
     "clearConfirm": "This will delete all your health data from this device. You can re-import at any time.",
     "cancel": "Cancel",
-    "exportJson": "Export data (JSON)"
+    "exportJson": "Export data (JSON)",
+    "summary": {
+      "range": "Covers {{start}} – {{end}}",
+      "sleep": "{{n}} sleep nights",
+      "readiness": "{{n}} readiness days",
+      "activity": "{{n}} activity days",
+      "workouts": "{{n}} workouts",
+      "meditations": "{{n}} meditations",
+      "stress": "{{n}} stress samples"
+    },
+    "reimportSuccess": "Import complete — your data is up to date."
   },
   "appearance": {
     "title": "Appearance",

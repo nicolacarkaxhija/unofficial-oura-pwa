@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import i18n from 'i18next'
@@ -40,15 +40,32 @@ export default function Settings() {
   const [clearing, setClearing] = useState(false)
   const [reimporting, setReimporting] = useState(false)
   const [reimportError, setReimportError] = useState<string | null>(null)
+  // Transient "import done" confirmation. Onboarding can't show a success
+  // state (the data gate unmounts it the instant rows land), so Settings is
+  // where re-import feedback lives; it auto-dismisses instead of needing a
+  // toast framework.
+  const [justReimported, setJustReimported] = useState(false)
+
+  useEffect(() => {
+    if (!justReimported) return
+    const timer = window.setTimeout(() => {
+      setJustReimported(false)
+    }, 6000)
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [justReimported])
 
   function handleReimport(file: File) {
     setReimporting(true)
     setReimportError(null)
+    setJustReimported(false)
     // bulkPut upserts, so re-importing overlapping date ranges updates rows
     // in place instead of duplicating them.
     runImport(file)
       .then(() => {
         setReimporting(false)
+        setJustReimported(true)
       })
       .catch((err: unknown) => {
         setReimportError(err instanceof Error ? err.message : 'Unknown error')
@@ -80,11 +97,49 @@ export default function Settings() {
 
       {/* ── Data ──────────────────────────────────────────────────────────── */}
       <Section title={t('data.title')}>
-        {lastImportDate ? (
-          <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
-            {t('data.lastImport', { date: lastImportDate })}
-          </p>
+        {importStats && lastImportDate ? (
+          // "Last imported" summary — with multi-export merging (bulkPut
+          // upserts), this is the user's only feedback about what the most
+          // recent ZIP actually contained: its calendar coverage and row
+          // counts per pillar.
+          <div className="mb-3 space-y-1 text-sm" data-testid="import-summary">
+            <p className="text-slate-500 dark:text-slate-400">
+              {t('data.lastImport', { date: lastImportDate })}
+            </p>
+            {/* `!= null` (not !== null): stats persisted before firstDay/
+                lastDay existed lack the keys entirely (undefined). */}
+            {importStats.firstDay != null && importStats.lastDay != null && (
+              <p className="text-slate-500 dark:text-slate-400">
+                {t('data.summary.range', {
+                  start: format(new Date(`${importStats.firstDay}T00:00:00`), 'dd MMM yyyy'),
+                  end: format(new Date(`${importStats.lastDay}T00:00:00`), 'dd MMM yyyy'),
+                })}
+              </p>
+            )}
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              {[
+                // `n`, not `count`: count is i18next's plural-suffix trigger
+                // and these keys deliberately have a single form.
+                t('data.summary.sleep', { n: importStats.sleepNights }),
+                t('data.summary.readiness', { n: importStats.readinessDays }),
+                t('data.summary.activity', { n: importStats.activityDays }),
+                t('data.summary.workouts', { n: importStats.workouts }),
+                t('data.summary.meditations', { n: importStats.meditations }),
+                t('data.summary.stress', { n: importStats.stressPoints }),
+              ].join(' · ')}
+            </p>
+          </div>
         ) : null}
+
+        {justReimported && (
+          <p
+            className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+            role="status"
+            data-testid="reimport-success"
+          >
+            {t('data.reimportSuccess')}
+          </p>
+        )}
 
         <label className="block">
           <span className="sr-only">{t('data.importNew')}</span>

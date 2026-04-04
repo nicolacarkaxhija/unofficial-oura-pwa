@@ -108,3 +108,37 @@ test('clear all data → confirmation prompt → data cleared → onboarding sho
 
   await ctx.close()
 })
+
+test('import summary shows coverage range and counts; re-import shows confirmation', async ({
+  browser,
+}, testInfo) => {
+  const tmpDir = join(tmpdir(), `oura-settings-summary-${String(testInfo.parallelIndex)}`)
+  // Fixed 10-day window so the asserted range and counts are deterministic:
+  // sleep/readiness/activity 10 rows each, workouts every 3rd day = 4,
+  // meditations every 5th = 2, stress 4/day = 40.
+  const zipPath = await createFixtureZipFile(tmpDir, { days: 10, startDate: '2025-02-01' })
+
+  const ctx = await browser.newContext()
+  const page = await ctx.newPage()
+
+  // Seed via onboarding (first import).
+  await page.goto('/')
+  await page.setInputFiles('[data-testid="zip-input"]', zipPath)
+  await expect(page.getByText('Connect your Oura data')).not.toBeVisible({ timeout: 30_000 })
+
+  // The summary lives in Settings under "Last imported" — onboarding unmounts
+  // reactively on import success, so Settings is the durable feedback surface.
+  await page.goto('/settings')
+  const summary = page.locator('[data-testid="import-summary"]')
+  await expect(summary).toBeVisible()
+  await expect(summary).toContainText('Covers 01 Feb 2025 – 10 Feb 2025')
+  await expect(summary).toContainText('10 sleep nights')
+  await expect(summary).toContainText('4 workouts')
+  await expect(summary).toContainText('40 stress samples')
+
+  // Re-import the same ZIP from Settings → transient inline confirmation.
+  await page.setInputFiles('#zip-input-settings', zipPath)
+  await expect(page.locator('[data-testid="reimport-success"]')).toBeVisible({ timeout: 30_000 })
+
+  await ctx.close()
+})

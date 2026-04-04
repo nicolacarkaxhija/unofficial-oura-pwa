@@ -7,7 +7,17 @@
     "clearAll": "Cancella tutti i dati",
     "clearConfirm": "Verranno eliminati tutti i tuoi dati sanitari da questo dispositivo. Potrai reimportarli in qualsiasi momento.",
     "cancel": "Annulla",
-    "exportJson": "Esporta dati (JSON)"
+    "exportJson": "Esporta dati (JSON)",
+    "summary": {
+      "range": "Copre {{start}} – {{end}}",
+      "sleep": "{{n}} notti di sonno",
+      "readiness": "{{n}} giorni di prontezza",
+      "activity": "{{n}} giorni di attività",
+      "workouts": "{{n}} allenamenti",
+      "meditations": "{{n}} meditazioni",
+      "stress": "{{n}} campioni di stress"
+    },
+    "reimportSuccess": "Importazione completata — i tuoi dati sono aggiornati."
   },
   "appearance": {
     "title": "Aspetto",

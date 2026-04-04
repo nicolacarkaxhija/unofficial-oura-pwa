@@ -175,4 +175,10 @@ export interface ImportStats {
   meditations: number
   stressPoints: number
   importedAt: string // ISO 8601
+  // Calendar coverage of the imported export (min/max day across the three
+  // daily pillar files). null when the export had no dated rows. Stats
+  // persisted before these fields existed lack the keys entirely, so at
+  // runtime they can also be undefined — readers must use `!= null`.
+  firstDay: string | null
+  lastDay: string | null
 }

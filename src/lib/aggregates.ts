@@ -27,6 +27,26 @@ export interface WeeklyInsight {
   best: { day: string; score: number } | null
 }
 
+// ─── Day range ────────────────────────────────────────────────────────────────
+
+/**
+ * Min/max of a list of YYYY-MM-DD strings, or null when the list is empty.
+ * Lexicographic comparison is safe because the format is fixed-width ISO.
+ * Lives here (not inline in the import worker) so the exact coverage range
+ * shown in Settings is unit-testable without spinning up the worker.
+ */
+export function computeDayRange(days: string[]): { first: string; last: string } | null {
+  const seed = days[0]
+  if (seed === undefined) return null
+  let first = seed
+  let last = seed
+  for (const d of days) {
+    if (d < first) first = d
+    if (d > last) last = d
+  }
+  return { first, last }
+}
+
 const WINDOW = 7
 
 /**
