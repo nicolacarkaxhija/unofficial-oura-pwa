@@ -8,16 +8,10 @@
   },
   "score": "Score",
   "back": "Back",
-  "loading": "Loading…",
   "noData": "No data available for this date",
-  "error": {
-    "generic": "Something went wrong",
-    "invalidDate": "Invalid date"
-  },
   "trends": {
     "title": "Trends",
     "weeklyAvg": "7-day average",
-    "vsPrevWeek": "vs previous 7 days",
     "best": "Personal best"
   },
   "range": {

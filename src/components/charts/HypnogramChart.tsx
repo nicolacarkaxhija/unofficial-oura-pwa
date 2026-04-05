@@ -222,11 +222,23 @@ export default function HypnogramChart({
     )
   }
 
+  // Data-bearing accessible name: canvas content is invisible to screen
+  // readers, so the label must carry the numbers a sighted user reads off the
+  // chart. All three figures are derived from the props we already have —
+  // phases 2/3/4 are asleep time, 4 is deep, 2 is REM (Oura encoding above).
+  const asleepCount = phases.filter((p) => p >= 2 && p <= 4).length
+  const deepCount = phases.filter((p) => p === STAGE_VALUES.deep).length
+  const remCount = phases.filter((p) => p === STAGE_VALUES.rem).length
+
   return (
     <div
       ref={containerRef}
       className="w-full"
-      aria-label={t('stages.title')}
+      aria-label={t('stages.chartLabel', {
+        total: asleepCount * intervalMinutes,
+        deep: deepCount * intervalMinutes,
+        rem: remCount * intervalMinutes,
+      })}
       role="img"
       data-testid="hypnogram-canvas"
     />

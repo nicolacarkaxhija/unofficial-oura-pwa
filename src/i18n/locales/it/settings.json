@@ -2,12 +2,10 @@
   "title": "Impostazioni",
   "data": {
     "title": "Dati",
-    "importBtn": "Importa ZIP",
     "importNew": "Importa nuovo export",
     "lastImport": "Ultima importazione: {{date}}",
     "clearAll": "Cancella tutti i dati",
     "clearConfirm": "Verranno eliminati tutti i tuoi dati sanitari da questo dispositivo. Potrai reimportarli in qualsiasi momento.",
-    "storage": "Spazio usato: {{used}} di {{cap}}",
     "cancel": "Annulla",
     "exportJson": "Esporta dati (JSON)"
   },
@@ -22,7 +20,6 @@
   "about": {
     "title": "Informazioni",
     "version": "Versione {{version}}",
-    "github": "Codice sorgente su GitHub",
     "legal": "Questa app elabora i dati esportati dal portale ufficiale Oura in conformità all'Art. 20 GDPR. Non è affiliata a Oura Health.",
     "privacy": "Nessun dato lascia il tuo dispositivo. Non abbiamo server, database né analytics."
   }

@@ -8,16 +8,10 @@
   },
   "score": "Punteggio",
   "back": "Indietro",
-  "loading": "Caricamento…",
   "noData": "Nessun dato disponibile per questa data",
-  "error": {
-    "generic": "Qualcosa è andato storto",
-    "invalidDate": "Data non valida"
-  },
   "trends": {
     "title": "Tendenze",
     "weeklyAvg": "Media 7 giorni",
-    "vsPrevWeek": "vs 7 giorni precedenti",
     "best": "Record personale"
   },
   "range": {

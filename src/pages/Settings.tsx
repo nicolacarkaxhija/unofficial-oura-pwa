@@ -172,7 +172,8 @@ export default function Settings() {
                 onClick={() => {
                   setTheme(value)
                 }}
-                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                // min-h-11 = 44px WCAG/HIG tap target; padding alone left these ~36px.
+                className={`min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   theme === value
                     ? 'bg-emerald-500 text-white'
                     : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
@@ -191,7 +192,8 @@ export default function Settings() {
                 key={code}
                 type="button"
                 onClick={() => void i18n.changeLanguage(code)}
-                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                // min-h-11 = 44px WCAG/HIG tap target, matching the theme buttons.
+                className={`min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   i18n.language.startsWith(code)
                     ? 'bg-emerald-500 text-white'
                     : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'

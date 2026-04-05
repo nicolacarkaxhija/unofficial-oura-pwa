@@ -17,6 +17,7 @@
   },
   "stages": {
     "title": "Fasi del sonno",
+    "chartLabel": "Fasi del sonno — sonno totale {{total}} min, profondo {{deep}} min, REM {{rem}} min",
     "awake": "Sveglio",
     "rem": "REM",
     "light": "Leggero",

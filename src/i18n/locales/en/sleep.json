@@ -17,6 +17,7 @@
   },
   "stages": {
     "title": "Sleep stages",
+    "chartLabel": "Sleep stages — total sleep {{total}} min, deep {{deep}} min, REM {{rem}} min",
     "awake": "Awake",
     "rem": "REM",
     "light": "Light",

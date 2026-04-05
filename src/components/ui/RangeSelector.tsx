@@ -33,7 +33,9 @@ export function RangeSelector({ value, onChange }: RangeSelectorProps) {
           onClick={() => {
             onChange(days)
           }}
-          className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+          // min-h-11 = 44px, the WCAG 2.5.5 / Apple HIG minimum tap target.
+          // Text stays xs so the control keeps its compact segmented look.
+          className={`min-h-11 flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
             value === days
               ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
               : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
