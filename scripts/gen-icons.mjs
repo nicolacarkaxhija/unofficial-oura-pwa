@@ -1,10 +1,9 @@
-// Generates placeholder PWA icons (public/icon-192.png, public/icon-512.png)
-// using only Node.js built-ins (zlib, fs). No external dependencies.
+// Generates the PWA icons (public/icon-*.png) using only Node.js built-ins
+// (zlib, fs). No external dependencies, no design tooling in the pipeline.
 //
-// WHY placeholder icons exist in the repo: vite-plugin-pwa requires icon paths
-// to exist at build time. Replace with properly designed assets before launch.
-//
-// The icons are solid emerald (#10b981) squares — the app's primary accent colour.
+// The glyph is a ring — an anti-aliased emerald annulus on a deep slate
+// background — the obvious visual pun for an Oura Ring app, drawn per-pixel
+// so the repo needs no binary design assets or image libraries.
 
 import { createWriteStream } from 'fs'
 import { deflateSync } from 'zlib'
@@ -35,6 +34,21 @@ function chunk(type, data) {
   return Buffer.concat([len, typeBytes, data, crcBytes])
 }
 
+// Anti-aliased ring coverage: 1 inside the annulus band, 0 outside, smooth
+// 1px falloff at both edges (distance-field style, supersampling-free).
+function ringCoverage(x, y, size) {
+  const c = size / 2
+  const dx = x + 0.5 - c
+  const dy = y + 0.5 - c
+  const d = Math.sqrt(dx * dx + dy * dy)
+  const outer = size * 0.34
+  const inner = size * 0.22
+  const aa = 1.5
+  const covOuter = Math.min(1, Math.max(0, (outer - d) / aa))
+  const covInner = Math.min(1, Math.max(0, (d - inner) / aa))
+  return covOuter * covInner
+}
+
 function makePng(size, r, g, b) {
   const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])
 
@@ -52,9 +66,11 @@ function makePng(size, r, g, b) {
     const base = y * rowSize
     raw[base] = 0  // filter type: None
     for (let x = 0; x < size; x++) {
-      raw[base + 1 + x * 3] = r
-      raw[base + 2 + x * 3] = g
-      raw[base + 3 + x * 3] = b
+      // Blend ring colour over the slate background by AA coverage.
+      const t = ringCoverage(x, y, size)
+      raw[base + 1 + x * 3] = Math.round(BG_R + (r - BG_R) * t)
+      raw[base + 2 + x * 3] = Math.round(BG_G + (g - BG_G) * t)
+      raw[base + 3 + x * 3] = Math.round(BG_B + (b - BG_B) * t)
     }
   }
 
@@ -68,8 +84,9 @@ function makePng(size, r, g, b) {
   ])
 }
 
-// Emerald #10b981 → rgb(16, 185, 129)
+// Emerald ring #10b981 on slate-900 #0f172a background
 const R = 16, G = 185, B = 129
+const BG_R = 15, BG_G = 23, BG_B = 42
 
 for (const size of [192, 512]) {
   const png = makePng(size, R, G, B)
