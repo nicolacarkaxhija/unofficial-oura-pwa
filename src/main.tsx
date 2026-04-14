@@ -9,6 +9,9 @@ import { RouterProvider } from '@tanstack/react-router'
 import { ThemeProvider } from './theme/ThemeContext'
 import { router } from './router'
 import './styles.css'
+import { setupUpdatePrompt } from './pwa/updatePrompt'
+
+setupUpdatePrompt()
 
 const rootElement = document.getElementById('root')
 if (!rootElement) throw new Error('#root element not found')

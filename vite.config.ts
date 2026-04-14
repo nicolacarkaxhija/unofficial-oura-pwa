@@ -11,7 +11,7 @@ export default defineConfig({
     // No tailwind.config.js is needed; configuration lives in src/styles.css.
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       // The service worker pre-caches the app shell so the PWA works fully
       // offline after first install. Safari's 7-day eviction policy wipes
       // IndexedDB but NOT the service worker cache, so the app shell always

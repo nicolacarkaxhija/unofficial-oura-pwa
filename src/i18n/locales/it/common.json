@@ -27,5 +27,9 @@
     "1y": "1a",
     "all": "Tutti"
   },
-  "showMore": "Mostra altri"
+  "showMore": "Mostra altri",
+  "update": {
+    "available": "È disponibile una nuova versione",
+    "reload": "Aggiorna"
+  }
 }
