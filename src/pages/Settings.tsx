@@ -7,6 +7,7 @@ import type { Theme } from '@/theme/ThemeContext'
 import { useImportStats } from '@/db/hooks'
 import { db } from '@/db/client'
 import { runImport } from '@/workers/runImport'
+import { downloadExport } from '@/lib/exportData'
 import { format } from 'date-fns'
 
 // ─── Settings Page ─────────────────────────────────────────────────────────────
@@ -109,6 +110,14 @@ export default function Settings() {
             {reimporting ? '…' : t('data.importNew')}
           </button>
         </label>
+
+        <button
+          type="button"
+          onClick={() => void downloadExport()}
+          className="mt-3 w-full rounded-xl border border-slate-300 px-4 py-3 font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+        >
+          {t('data.exportJson')}
+        </button>
 
         {reimportError && (
           <p className="mt-2 text-sm text-rose-500 dark:text-rose-400" role="alert">

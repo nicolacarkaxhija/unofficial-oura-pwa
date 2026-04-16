@@ -8,7 +8,8 @@
     "clearAll": "Cancella tutti i dati",
     "clearConfirm": "Verranno eliminati tutti i tuoi dati sanitari da questo dispositivo. Potrai reimportarli in qualsiasi momento.",
     "storage": "Spazio usato: {{used}} di {{cap}}",
-    "cancel": "Annulla"
+    "cancel": "Annulla",
+    "exportJson": "Esporta dati (JSON)"
   },
   "appearance": {
     "title": "Aspetto",
