@@ -19,5 +19,13 @@
     "weeklyAvg": "7-day average",
     "vsPrevWeek": "vs previous 7 days",
     "best": "Personal best"
-  }
+  },
+  "range": {
+    "label": "History range",
+    "30d": "30d",
+    "90d": "90d",
+    "1y": "1y",
+    "all": "All"
+  },
+  "showMore": "Show more"
 }

@@ -1,7 +1,8 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from '@tanstack/react-router'
 import { ScoreHistoryChart } from '@/components/charts'
-import { ScoreRing, LoadingSkeleton } from '@/components/ui'
+import { ScoreRing, LoadingSkeleton, RangeSelector } from '@/components/ui'
 import { useSleepDays } from '@/db/hooks'
 
 // ─── SleepList ────────────────────────────────────────────────────────────────
@@ -26,16 +27,32 @@ function formatDate(day: string): string {
 // Brand colour for sleep charts — matches HypnogramChart's light-sleep blue
 const SLEEP_COLOR = '#60a5fa'
 
+// Rows rendered before a \"Show more\" click — comfortably above the 1y
+// window so pagination only ever appears for \"All\".
+const PAGE_SIZE = 400
+
 export default function SleepList() {
   const { t } = useTranslation('sleep')
   const { t: tCommon } = useTranslation('common')
 
   // Returns undefined while IndexedDB is being queried (first render)
-  const days = useSleepDays(90)
+  // History window (row limit). Display is additionally paginated so "All"
+  // on a multi-year export doesn't render thousands of DOM rows at once.
+  const [rangeDays, setRangeDays] = useState(90)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const days = useSleepDays(rangeDays)
 
   return (
     <div className="px-4 pt-8 pb-6">
       <h1 className="mb-4 text-2xl font-bold text-slate-900 dark:text-white">{t('title')}</h1>
+
+      <RangeSelector
+        value={rangeDays}
+        onChange={(d) => {
+          setRangeDays(d)
+          setVisibleCount(PAGE_SIZE)
+        }}
+      />
 
       {days === undefined ? (
         // Loading state — skeleton chart + list rows
@@ -54,7 +71,7 @@ export default function SleepList() {
           {/* 90-day trend chart at the top — gives context before diving into rows */}
           <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-800">
             <p className="mb-2 text-xs font-semibold text-slate-500 uppercase dark:text-slate-400">
-              {t('score')} — 90 days
+              {t('score')}
             </p>
             <ScoreHistoryChart
               data={days.map((d) => ({ day: d.day, score: d.score }))}
@@ -64,7 +81,7 @@ export default function SleepList() {
 
           {/* Day list */}
           <ul className="space-y-2">
-            {days.map((day) => (
+            {days.slice(0, visibleCount).map((day) => (
               <li key={day.day}>
                 <Link
                   to="/sleep/$date"
@@ -108,6 +125,18 @@ export default function SleepList() {
               </li>
             ))}
           </ul>
+
+          {days.length > visibleCount && (
+            <button
+              type="button"
+              onClick={() => {
+                setVisibleCount((c) => c + PAGE_SIZE)
+              }}
+              className="mt-4 w-full rounded-xl bg-slate-100 py-3 text-sm font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+            >
+              {tCommon('showMore')}
+            </button>
+          )}
         </>
       )}
     </div>

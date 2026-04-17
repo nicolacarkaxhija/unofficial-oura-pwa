@@ -1,7 +1,8 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from '@tanstack/react-router'
 import { ScoreHistoryChart } from '@/components/charts'
-import { ScoreRing, LoadingSkeleton } from '@/components/ui'
+import { ScoreRing, LoadingSkeleton, RangeSelector } from '@/components/ui'
 import { useActivityDays } from '@/db/hooks'
 
 // ─── ActivityList ─────────────────────────────────────────────────────────────
@@ -13,6 +14,10 @@ import { useActivityDays } from '@/db/hooks'
 // because "10,234" is easier to parse than "10234" at a glance.
 
 const ACTIVITY_COLOR = '#10b981' // emerald-500
+
+// Rows rendered before a \"Show more\" click — comfortably above the 1y
+// window so pagination only ever appears for \"All\".
+const PAGE_SIZE = 400
 
 function formatDate(day: string): string {
   return new Date(`${day}T00:00:00`).toLocaleDateString(undefined, {
@@ -26,11 +31,23 @@ export default function ActivityList() {
   const { t } = useTranslation('activity')
   const { t: tCommon } = useTranslation('common')
 
-  const days = useActivityDays(90)
+  // History window (row limit). Display is additionally paginated so "All"
+  // on a multi-year export doesn't render thousands of DOM rows at once.
+  const [rangeDays, setRangeDays] = useState(90)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const days = useActivityDays(rangeDays)
 
   return (
     <div className="px-4 pt-8 pb-6">
       <h1 className="mb-4 text-2xl font-bold text-slate-900 dark:text-white">{t('title')}</h1>
+
+      <RangeSelector
+        value={rangeDays}
+        onChange={(d) => {
+          setRangeDays(d)
+          setVisibleCount(PAGE_SIZE)
+        }}
+      />
 
       {days === undefined ? (
         <div className="space-y-3">
@@ -48,7 +65,7 @@ export default function ActivityList() {
           {/* 90-day trend chart */}
           <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-800">
             <p className="mb-2 text-xs font-semibold text-slate-500 uppercase dark:text-slate-400">
-              {t('score')} — 90 days
+              {t('score')}
             </p>
             <ScoreHistoryChart
               data={days.map((d) => ({ day: d.day, score: d.score }))}
@@ -58,7 +75,7 @@ export default function ActivityList() {
 
           {/* Day list */}
           <ul className="space-y-2">
-            {days.map((day) => (
+            {days.slice(0, visibleCount).map((day) => (
               <li key={day.day}>
                 <Link
                   to="/activity/$date"
@@ -103,6 +120,18 @@ export default function ActivityList() {
               </li>
             ))}
           </ul>
+
+          {days.length > visibleCount && (
+            <button
+              type="button"
+              onClick={() => {
+                setVisibleCount((c) => c + PAGE_SIZE)
+              }}
+              className="mt-4 w-full rounded-xl bg-slate-100 py-3 text-sm font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+            >
+              {tCommon('showMore')}
+            </button>
+          )}
         </>
       )}
     </div>
