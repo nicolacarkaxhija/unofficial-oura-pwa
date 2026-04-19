@@ -13,5 +13,11 @@
   "error": {
     "generic": "Something went wrong",
     "invalidDate": "Invalid date"
+  },
+  "trends": {
+    "title": "Trends",
+    "weeklyAvg": "7-day average",
+    "vsPrevWeek": "vs previous 7 days",
+    "best": "Personal best"
   }
 }

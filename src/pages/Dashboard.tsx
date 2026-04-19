@@ -1,7 +1,15 @@
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { ScoreRing, LoadingSkeleton } from '@/components/ui'
-import { useLatestSleepDay, useLatestReadinessDay, useLatestActivityDay } from '@/db/hooks'
+import {
+  useLatestSleepDay,
+  useLatestReadinessDay,
+  useLatestActivityDay,
+  useSleepDays,
+  useReadinessDays,
+  useActivityDays,
+} from '@/db/hooks'
+import { computeWeeklyInsight, type WeeklyInsight } from '@/lib/aggregates'
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 //
@@ -28,6 +36,12 @@ export default function Dashboard() {
   const sleepDay = useLatestSleepDay()
   const readinessDay = useLatestReadinessDay()
   const activityDay = useLatestActivityDay()
+
+  // 90 rows cover both 7-day windows and give the personal-best scan the same
+  // horizon the list pages show — the insights never disagree with the lists.
+  const sleepDays = useSleepDays(90)
+  const readinessDays = useReadinessDays(90)
+  const activityDays = useActivityDays(90)
 
   const loading = sleepDay === undefined || readinessDay === undefined || activityDay === undefined
 
@@ -102,6 +116,30 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* ── Trends ── week-over-week movement per pillar. Only rendered once
+          the series have loaded and at least one pillar has an average. */}
+      {sleepDays && readinessDays && activityDays && (
+        <TrendsSection
+          rows={[
+            {
+              label: tSleep('title'),
+              insight: computeWeeklyInsight(sleepDays),
+              color: 'text-blue-500',
+            },
+            {
+              label: tReadiness('title'),
+              insight: computeWeeklyInsight(readinessDays),
+              color: 'text-indigo-500',
+            },
+            {
+              label: tActivity('title'),
+              insight: computeWeeklyInsight(activityDays),
+              color: 'text-emerald-500',
+            },
+          ]}
+        />
+      )}
+
       {/* Date of the data being shown — tells the user how fresh their export is.
           T00:00:00 suffix keeps the Date in local time (a bare YYYY-MM-DD parses as UTC). */}
       <p className="mt-6 text-center text-xs text-slate-400 dark:text-slate-500">
@@ -117,6 +155,66 @@ export default function Dashboard() {
       </p>
     </div>
   )
+}
+
+// ─── TrendsSection ────────────────────────────────────────────────────────────
+//
+// One row per pillar: 7-day average, signed delta vs the previous 7 scored
+// days, and the personal best. Deltas are rounded to one decimal — score
+// averages move in fractions and showing "+0" for a +0.4 week reads as noise.
+
+interface TrendRow {
+  label: string
+  insight: WeeklyInsight
+  color: string
+}
+
+function TrendsSection({ rows }: { rows: TrendRow[] }) {
+  const { t } = useTranslation('common')
+
+  const visible = rows.filter((r) => r.insight.avg !== null)
+  if (visible.length === 0) return null
+
+  return (
+    <div className="mt-6 rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-800">
+      <h2 className="mb-3 text-xs font-semibold tracking-wider text-slate-400 uppercase dark:text-slate-500">
+        {t('trends.title')}
+      </h2>
+      <ul className="space-y-3" data-testid="trends-list">
+        {visible.map(({ label, insight, color }) => (
+          <li key={label} className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className={`text-sm font-semibold ${color}`}>{label}</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                {t('trends.weeklyAvg')}
+                {insight.best && ` · ${t('trends.best')}: ${String(insight.best.score)}`}
+              </p>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-xl font-bold text-slate-900 dark:text-white">
+                {insight.avg !== null ? Math.round(insight.avg) : '—'}
+              </span>
+              {insight.delta !== null && <DeltaBadge delta={insight.delta} />}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function DeltaBadge({ delta }: { delta: number }) {
+  const rounded = Math.round(delta * 10) / 10
+  // ±0.5 is within day-to-day noise for 0–100 scores; call it flat rather
+  // than colouring a meaningless movement.
+  const flat = Math.abs(rounded) < 0.5
+  const cls = flat
+    ? 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+    : rounded > 0
+      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+      : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
+  const text = flat ? '·' : `${rounded > 0 ? '▲' : '▼'} ${String(Math.abs(rounded))}`
+  return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>{text}</span>
 }
 
 // ─── DashboardCard ────────────────────────────────────────────────────────────

@@ -73,13 +73,26 @@ for (const route of ['/readiness/2020-06-15', '/activity/2020-06-15'] as const) 
     // Full document load of a detail URL for a date outside the imported range.
     await seededPage.goto(route)
 
-    // The app shell must mount: bottom nav present, no error boundary text.
-    // (Current behaviour renders loading skeletons indefinitely because
-    // useLiveQuery cannot distinguish "loading" from "not found" — the page
-    // must at minimum not crash or show a blank document.)
+    // The app shell must mount: bottom nav present, no error boundary text,
+    // and a resolved "no data" state (null contract) instead of eternal skeletons.
     await expect(seededPage.getByRole('navigation', { name: 'Main navigation' })).toBeVisible({
       timeout: 10_000,
     })
     await expect(seededPage.getByText('Something went wrong')).not.toBeVisible()
+    await expect(seededPage.getByText('No data available for this date')).toBeVisible()
   })
 }
+
+test('trends section shows a 7-day average per pillar with a delta badge', async () => {
+  await seededPage.goto('/')
+
+  const trends = seededPage.locator('[data-testid="trends-list"]')
+  await expect(trends).toBeVisible()
+
+  // All three pillars have 5 days of fixture data → three rows, each with an
+  // average. Deltas need 8+ scored days, so no badge is asserted here — the
+  // arithmetic itself is pinned by tests/unit/aggregates.test.ts.
+  await expect(trends.locator('li')).toHaveCount(3)
+  await expect(seededPage.getByText('Trends')).toBeVisible()
+  await expect(seededPage.getByText(/Personal best: \d+/).first()).toBeVisible()
+})
