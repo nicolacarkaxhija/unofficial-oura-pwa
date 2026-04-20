@@ -1,22 +1,11 @@
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
-
-// ─── Why Recharts here, not uPlot ────────────────────────────────────────────
+// ─── ScoreHistoryChart ────────────────────────────────────────────────────────
 //
-// Score history charts show at most 365 points (one per day). At that scale
-// SVG DOM cost is negligible and Recharts' declarative JSX is significantly
-// more maintainable than uPlot's imperative canvas API. There is no
-// pinch-zoom interaction requirement — the chart is read-only.
-//
-// If we ever add daily-granularity views spanning multiple years (365+ points
-// with pan/zoom), switch this component to uPlot.
+// Hand-rolled SVG area chart. This and ContributorRadar were the only two
+// recharts consumers; at ≤365 static points a viewBox-scaled SVG needs no
+// charting library, and dropping recharts removed the largest vendor chunk
+// (~100 kB gzip) from the bundle. Interactivity was deliberately not ported:
+// these are read-only trend views, and the per-day numbers are in the list
+// rows right below the chart.
 
 interface ScoreHistoryDatum {
   /** YYYY-MM-DD */
@@ -34,20 +23,23 @@ interface ScoreHistoryChartProps {
   color: string
 }
 
-// Format "2024-06-15" → "Jun 15" for the x-axis tick.
-// We avoid date-fns here because the format is trivial and we want to keep
-// this chart component dependency-free beyond Recharts itself.
+// Chart geometry in viewBox units. Rendered width scales with the container;
+// the aspect ratio stays fixed, matching the previous 180px-tall recharts look.
+const W = 360
+const H = 180
+const PAD_LEFT = 30 // room for y labels
+const PAD_RIGHT = 8
+const PAD_TOP = 8
+const PAD_BOTTOM = 18 // room for x labels
+
 function formatDay(day: string): string {
-  const [, month, date] = day.split('-')
-  if (!month || !date) return day
   const d = new Date(`${day}T00:00:00`)
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
 export default function ScoreHistoryChart({ data, color }: ScoreHistoryChartProps) {
-  // Filter out days where score is null — Recharts renders null as a gap
-  // in the line by default, but filtering keeps the domain clean and avoids
-  // confusing "cliff" artefacts at the edges of missing ranges.
+  // Filter out null-score days: rendering them as gaps needs path splitting
+  // for no informational gain — the list below shows exactly which days lack data.
   const filtered = data.filter((d): d is { day: string; score: number } => d.score !== null)
 
   if (filtered.length === 0) {
@@ -58,72 +50,85 @@ export default function ScoreHistoryChart({ data, color }: ScoreHistoryChartProp
     )
   }
 
-  // Sparse scores: only show every Nth x-axis label so they don't overlap.
-  // Rule of thumb: one label per ~60px; at 360px width that's ~6 labels.
-  const tickInterval = Math.max(1, Math.floor(filtered.length / 6))
+  // Chronological left→right; callers pass newest-first.
+  const points = [...filtered].reverse()
+
+  const innerW = W - PAD_LEFT - PAD_RIGHT
+  const innerH = H - PAD_TOP - PAD_BOTTOM
+  const x = (i: number) =>
+    PAD_LEFT + (points.length === 1 ? innerW / 2 : (i / (points.length - 1)) * innerW)
+  const y = (score: number) => PAD_TOP + (1 - score / 100) * innerH
+
+  const linePath = points
+    .map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(p.score).toFixed(1)}`)
+    .join(' ')
+  const baseline = (PAD_TOP + innerH).toFixed(1)
+  const areaPath = `${linePath} L${x(points.length - 1).toFixed(1)},${baseline} L${x(0).toFixed(1)},${baseline} Z`
+
+  // ~6 x labels; y gridlines at fixed quartiles of the 0–100 domain.
+  const tickEvery = Math.max(1, Math.floor(points.length / 6))
+  const xTicks = points.map((p, i) => ({ p, i })).filter(({ i }) => i % tickEvery === 0)
+  const yTicks = [0, 25, 50, 75, 100]
+
+  const gradId = `scoreGrad-${color.replace('#', '')}`
+  const first = points[0]
+  const last = points[points.length - 1]
 
   return (
-    <ResponsiveContainer width="100%" height={180}>
-      <AreaChart data={filtered} margin={{ top: 8, right: 8, bottom: 0, left: -24 }}>
-        <defs>
-          {/* Gradient fill: opaque at the line, transparent at the baseline.
-              Gives the "area chart" look without dominating the background. */}
-          <linearGradient id={`scoreGrad-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={color} stopOpacity={0.35} />
-            <stop offset="95%" stopColor={color} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid
-          strokeDasharray="3 3"
-          className="stroke-gray-200 dark:stroke-gray-700"
-          vertical={false}
-        />
-        <XAxis
-          dataKey="day"
-          tickFormatter={formatDay}
-          interval={tickInterval}
-          tick={{ fontSize: 11 }}
+    <svg
+      viewBox={`0 0 ${String(W)} ${String(H)}`}
+      className="h-auto w-full"
+      role="img"
+      aria-label={
+        first && last
+          ? `Score trend from ${formatDay(first.day)} (${String(first.score)}) to ${formatDay(last.day)} (${String(last.score)})`
+          : 'Score trend'
+      }
+    >
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor={color} stopOpacity={0.35} />
+          <stop offset="95%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+
+      {yTicks.map((t) => (
+        <g key={t}>
+          <line
+            x1={PAD_LEFT}
+            x2={W - PAD_RIGHT}
+            y1={y(t)}
+            y2={y(t)}
+            strokeDasharray="3 3"
+            className="stroke-gray-200 dark:stroke-gray-700"
+          />
+          <text
+            x={PAD_LEFT - 4}
+            y={y(t) + 3}
+            textAnchor="end"
+            fontSize="10"
+            className="fill-gray-500 dark:fill-gray-400"
+          >
+            {t}
+          </text>
+        </g>
+      ))}
+
+      {xTicks.map(({ p, i }) => (
+        <text
+          key={p.day}
+          x={x(i)}
+          y={H - 4}
+          textAnchor="middle"
+          fontSize="10"
           className="fill-gray-500 dark:fill-gray-400"
-          axisLine={false}
-          tickLine={false}
-        />
-        <YAxis
-          domain={[0, 100]}
-          tickCount={5}
-          tick={{ fontSize: 11 }}
-          className="fill-gray-500 dark:fill-gray-400"
-          axisLine={false}
-          tickLine={false}
-          width={40}
-        />
-        <Tooltip
-          formatter={(value: number) => [String(value), 'Score']}
-          labelFormatter={(label: string) => formatDay(label)}
-          contentStyle={{
-            // Tooltip lives outside the SVG so Tailwind dark: doesn't apply.
-            // We use CSS custom properties set on <html> by ThemeContext.
-            // Fallback values cover the case where the properties aren't set yet.
-            backgroundColor: 'var(--color-surface, #ffffff)',
-            border: '1px solid #e5e7eb',
-            borderRadius: '6px',
-            fontSize: '12px',
-          }}
-        />
-        <Area
-          type="monotone"
-          dataKey="score"
-          stroke={color}
-          strokeWidth={2}
-          fill={`url(#scoreGrad-${color.replace('#', '')})`}
-          dot={false}
-          activeDot={{ r: 4 }}
-          isAnimationActive={false}
-          // Animation disabled: charts render inside useLiveQuery callbacks that
-          // can fire rapidly during import. Animated re-mounts on each write
-          // would produce a distracting flicker. Animation adds no UX value for
-          // historical data that never changes after the import completes.
-        />
-      </AreaChart>
-    </ResponsiveContainer>
+        >
+          {formatDay(p.day)}
+        </text>
+      ))}
+
+      <path d={areaPath} fill={`url(#${gradId})`} />
+      <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
+    </svg>
   )
 }

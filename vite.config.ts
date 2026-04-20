@@ -67,7 +67,6 @@ export default defineConfig({
           // Recharts pulls in d3-scale, d3-shape, etc. — worth isolating.
           // ContributorRadar and ScoreHistoryChart both use it; hoisting to a
           // shared chunk avoids the ~360 kB being duplicated per page chunk.
-          recharts: ['recharts'],
           // uPlot is used by HypnogramChart and TimeSeriesChart (sleep detail).
           uplot: ['uplot'],
           // Dexie is the IndexedDB wrapper used by every db/hooks call.

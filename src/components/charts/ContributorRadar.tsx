@@ -1,18 +1,9 @@
-import {
-  PolarAngleAxis,
-  PolarGrid,
-  Radar,
-  RadarChart,
-  ResponsiveContainer,
-  Tooltip,
-} from 'recharts'
-
-// ─── Why Recharts here, not uPlot ────────────────────────────────────────────
+// ─── ContributorRadar ─────────────────────────────────────────────────────────
 //
-// Contributor radar charts have at most ~8 spokes (one per readiness contributor).
-// The SVG DOM cost for 8 elements is negligible — uPlot's imperative canvas API
-// would be significantly harder to maintain for a static spider chart than
-// Recharts' declarative JSX, with no performance benefit at this scale.
+// Hand-rolled SVG spider chart (≤8 spokes, static). Replaced recharts — see
+// ScoreHistoryChart for the bundle rationale. Values are also listed as
+// ContributorBars below this chart on the detail page, so the radar is a
+// shape-at-a-glance visual, not the primary data surface.
 
 interface ContributorRadarProps {
   /**
@@ -20,11 +11,6 @@ interface ContributorRadarProps {
    * Null values are excluded so missing contributors don't drag the visual.
    */
   contributors: Record<string, number | null>
-}
-
-interface RadarDatum {
-  subject: string
-  value: number
 }
 
 // Human-readable labels for known Oura contributor keys.
@@ -52,13 +38,39 @@ function humanise(key: string): string {
   return CONTRIBUTOR_LABELS[key] ?? key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
+const SIZE = 280
+const CX = SIZE / 2
+const CY = SIZE / 2
+// Radius leaves room for labels outside the outer ring.
+const R = SIZE * 0.34
+const RINGS = [0.25, 0.5, 0.75, 1]
+const STROKE = '#6366f1' // indigo-500 — Oura's readiness accent
+
+// Angle for spoke i of n, starting at 12 o'clock and going clockwise.
+function angle(i: number, n: number): number {
+  return -Math.PI / 2 + (i / n) * 2 * Math.PI
+}
+
+function polar(a: number, r: number): [number, number] {
+  return [CX + r * Math.cos(a), CY + r * Math.sin(a)]
+}
+
+function polygonPoints(values: number[], scale = 1): string {
+  return values
+    .map((v, i) => {
+      const [px, py] = polar(angle(i, values.length), R * scale * (v / 100))
+      return `${px.toFixed(1)},${py.toFixed(1)}`
+    })
+    .join(' ')
+}
+
 export default function ContributorRadar({ contributors }: ContributorRadarProps) {
   // Filter nulls — a missing contributor score shouldn't appear as zero on the radar
-  const radarData: RadarDatum[] = Object.entries(contributors)
-    .filter((entry): entry is [string, number] => entry[1] !== null)
-    .map(([key, value]) => ({ subject: humanise(key), value }))
+  const entries = Object.entries(contributors).filter(
+    (entry): entry is [string, number] => entry[1] !== null,
+  )
 
-  if (radarData.length === 0) {
+  if (entries.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center text-sm text-gray-500 dark:text-gray-400">
         No contributor data
@@ -66,44 +78,68 @@ export default function ContributorRadar({ contributors }: ContributorRadarProps
     )
   }
 
+  const n = entries.length
+  const values = entries.map(([, v]) => v)
+  const summary = entries.map(([k, v]) => `${humanise(k)} ${String(v)}`).join(', ')
+
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-        {/* PolarGrid and PolarAngleAxis both pick up text/stroke from the SVG
-            cascade, so dark: Tailwind variants on a wrapper <div> are enough —
-            no explicit colour props needed here, unlike canvas charts. */}
-        <PolarGrid className="stroke-gray-200 dark:stroke-gray-700" />
-        <PolarAngleAxis
-          dataKey="subject"
-          tick={{
-            fontSize: 11,
-            // Inline style because Recharts renders ticks as SVG <text> elements
-            // that Tailwind can't target directly. We rely on CSS currentColor
-            // by letting Recharts default to `fill: currentColor`.
-          }}
-          className="fill-gray-600 dark:fill-gray-300"
+    <svg
+      viewBox={`0 0 ${String(SIZE)} ${String(SIZE)}`}
+      className="mx-auto h-auto w-full max-w-xs"
+      role="img"
+      aria-label={`Contributors: ${summary}`}
+    >
+      {/* Concentric grid rings (regular polygons matching the spoke count) */}
+      {RINGS.map((ring) => (
+        <polygon
+          key={ring}
+          points={polygonPoints(
+            values.map(() => 100),
+            ring,
+          )}
+          fill="none"
+          className="stroke-gray-200 dark:stroke-gray-700"
         />
-        <Radar
-          name="Score"
-          dataKey="value"
-          // Oura's brand colour for readiness
-          stroke="#6366f1"
-          fill="#6366f1"
-          fillOpacity={0.25}
-          dot={false}
-        />
-        <Tooltip
-          formatter={(value: number) => [String(value), 'Score']}
-          contentStyle={{
-            // Tooltip sits outside the SVG so Tailwind dark: doesn't apply;
-            // we use inline styles instead.
-            backgroundColor: 'var(--color-surface, #fff)',
-            border: '1px solid #e5e7eb',
-            borderRadius: '6px',
-            fontSize: '12px',
-          }}
-        />
-      </RadarChart>
-    </ResponsiveContainer>
+      ))}
+
+      {/* Spokes + labels */}
+      {entries.map(([key], i) => {
+        const a = angle(i, n)
+        const [sx, sy] = polar(a, R)
+        const [lx, ly] = polar(a, R + 16)
+        // Anchor labels away from the centre so they don't overlap the chart.
+        const anchor = Math.abs(Math.cos(a)) < 0.3 ? 'middle' : Math.cos(a) > 0 ? 'start' : 'end'
+        return (
+          <g key={key}>
+            <line
+              x1={CX}
+              y1={CY}
+              x2={sx}
+              y2={sy}
+              className="stroke-gray-200 dark:stroke-gray-700"
+            />
+            <text
+              x={lx}
+              y={ly + 3}
+              textAnchor={anchor}
+              fontSize="10"
+              className="fill-gray-600 dark:fill-gray-300"
+            >
+              {humanise(key)}
+            </text>
+          </g>
+        )
+      })}
+
+      {/* Value polygon */}
+      <polygon
+        points={polygonPoints(values)}
+        fill={STROKE}
+        fillOpacity="0.25"
+        stroke={STROKE}
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </svg>
   )
 }
