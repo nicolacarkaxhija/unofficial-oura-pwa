@@ -2,7 +2,7 @@ import { format, parseISO } from 'date-fns'
 import { useParams, Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { HypnogramChart, TimeSeriesChart } from '@/components/charts'
-import { ContributorBar, ScoreRing, LoadingSkeleton } from '@/components/ui'
+import { ContributorBar, ScoreRing, LoadingSkeleton, NoDataForDate } from '@/components/ui'
 import { useSleepDay, useSleepSession } from '@/db/hooks'
 
 // ─── SleepDetail ──────────────────────────────────────────────────────────────
@@ -59,11 +59,8 @@ export default function SleepDetail() {
   const day = useSleepDay(date)
   const session = useSleepSession(date)
 
-  // useLiveQuery returns undefined while in-flight and the resolved value after.
-  // For day: undefined → loading or not-found; SleepDay → found.
-  // For session: undefined → loading or not-found; SleepSession → found.
-  // We show a skeleton while either hook is still loading.
-  if (!day) {
+  // undefined → query in flight → skeleton; null → no record for this date.
+  if (day === undefined) {
     return (
       <div className="space-y-4 px-4 pt-8 pb-6">
         <LoadingSkeleton className="h-8 w-48 rounded-lg" />
@@ -74,7 +71,11 @@ export default function SleepDetail() {
     )
   }
 
-  // day is SleepDay; session is SleepSession | undefined (may not exist for this date)
+  if (day === null) {
+    return <NoDataForDate />
+  }
+
+  // day is SleepDay; session may still be null (no session row for this night)
   const hrData = session ? buildTimeSeries(session.heartRate, session.bedtimeStart) : []
   const hrvData = session ? buildTimeSeries(session.hrv, session.bedtimeStart) : []
 

@@ -306,11 +306,13 @@ describe('CSV content edge cases', () => {
     expect((await db.resilienceDays.get('2024-05-02'))?.stress).toBe(41)
   })
 
-  it('skips resilience rows with an unknown level enum value', async () => {
+  it('keeps resilience rows with an unknown level, downgraded to null', async () => {
+    // Parse-permissively: a new Oura tier must not cost the user the whole
+    // row — the level becomes null and the badge is simply not rendered.
     const csv = ['day,id,level,contributors', '2024-05-01,res-1,legendary,{}'].join('\n')
     await importZip(await zipFromCsvText({ 'resilience.csv': csv }))
-    expect(await db.resilienceDays.count()).toBe(0)
-    expect(warnSpy).toHaveBeenCalledTimes(1)
+    expect(await db.resilienceDays.count()).toBe(1)
+    expect((await db.resilienceDays.get('2024-05-01'))?.level).toBeNull()
   })
 
   it('collapses duplicate day rows to the last occurrence via the day PK', async () => {

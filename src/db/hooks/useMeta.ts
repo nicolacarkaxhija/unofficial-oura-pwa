@@ -44,15 +44,22 @@ export function useImportStats(): ImportStats | undefined {
  * Returns whether the database contains any data.
  *
  * Used to gate the onboarding flow: if false (or undefined while loading),
- * show the import prompt rather than the dashboard. Querying sleepDays.count()
- * is the cheapest proxy for "has any data" — if sleep data exists, the rest
- * of the import has run too.
+ * show the import prompt rather than the dashboard.
  *
- * Returns undefined while the count query is in flight (first render only).
+ * All three pillar tables are checked, not just sleepDays: an export can
+ * legitimately lack sleep data (e.g. ring worn only during the day, or a
+ * partial GDPR export) and keying the gate on sleep alone would strand such
+ * users on Onboarding forever.
+ *
+ * Returns undefined while the count queries are in flight (first render only).
  */
 export function useHasData(): boolean | undefined {
   return useLiveQuery(async () => {
-    const count = await db.sleepDays.count()
-    return count > 0
+    const [sleep, readiness, activity] = await Promise.all([
+      db.sleepDays.count(),
+      db.readinessDays.count(),
+      db.activityDays.count(),
+    ])
+    return sleep + readiness + activity > 0
   })
 }

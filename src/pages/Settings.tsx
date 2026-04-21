@@ -6,6 +6,7 @@ import { useTheme } from '@/theme/useTheme'
 import type { Theme } from '@/theme/ThemeContext'
 import { useImportStats } from '@/db/hooks'
 import { db } from '@/db/client'
+import { runImport } from '@/workers/runImport'
 import { format } from 'date-fns'
 
 // ─── Settings Page ─────────────────────────────────────────────────────────────
@@ -36,6 +37,23 @@ export default function Settings() {
   const navigate = useNavigate()
   const [confirmClear, setConfirmClear] = useState(false)
   const [clearing, setClearing] = useState(false)
+  const [reimporting, setReimporting] = useState(false)
+  const [reimportError, setReimportError] = useState<string | null>(null)
+
+  function handleReimport(file: File) {
+    setReimporting(true)
+    setReimportError(null)
+    // bulkPut upserts, so re-importing overlapping date ranges updates rows
+    // in place instead of duplicating them.
+    runImport(file)
+      .then(() => {
+        setReimporting(false)
+      })
+      .catch((err: unknown) => {
+        setReimportError(err instanceof Error ? err.message : 'Unknown error')
+        setReimporting(false)
+      })
+  }
 
   async function handleClearAll() {
     setClearing(true)
@@ -77,19 +95,26 @@ export default function Settings() {
             onChange={(e) => {
               const file = e.target.files?.[0]
               if (!file) return
-              // Re-import dispatches to App root's worker listener so the
-              // worker lifecycle isn't duplicated in Settings.
-              window.dispatchEvent(new CustomEvent('oura:reimport', { detail: file }))
+              handleReimport(file)
+              // Reset so selecting the same file again re-triggers onChange.
+              e.target.value = ''
             }}
           />
           <button
             type="button"
+            disabled={reimporting}
             onClick={() => document.getElementById('zip-input-settings')?.click()}
-            className="w-full rounded-xl bg-emerald-500 px-4 py-3 font-semibold text-white hover:bg-emerald-600 active:scale-95"
+            className="w-full rounded-xl bg-emerald-500 px-4 py-3 font-semibold text-white hover:bg-emerald-600 active:scale-95 disabled:opacity-50"
           >
-            {t('data.importNew')}
+            {reimporting ? '…' : t('data.importNew')}
           </button>
         </label>
+
+        {reimportError && (
+          <p className="mt-2 text-sm text-rose-500 dark:text-rose-400" role="alert">
+            {reimportError}
+          </p>
+        )}
 
         {!confirmClear ? (
           <button
@@ -112,7 +137,7 @@ export default function Settings() {
                 }}
                 className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 dark:border-slate-600 dark:text-slate-300"
               >
-                Cancel
+                {t('data.cancel')}
               </button>
               <button
                 type="button"

@@ -77,3 +77,12 @@ for (const size of [192, 512]) {
   createWriteStream(path).end(png)
   console.log(`wrote ${path} (${size}x${size}, ${png.length} bytes)`)
 }
+
+// Maskable variant: declared in the manifest with purpose 'maskable'. A solid
+// square is inherently safe-zone-compliant, so it's a byte-identical copy —
+// it exists as a separate file so a future designed icon can differ.
+{
+  const png = makePng(512, R, G, B)
+  createWriteStream('public/icon-512-maskable.png').end(png)
+  console.log('wrote public/icon-512-maskable.png')
+}

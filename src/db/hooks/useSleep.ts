@@ -43,12 +43,10 @@ export function useLatestSleepDay(): SleepDay | null | undefined {
 }
 
 /** Returns the SleepDay summary for a single calendar date. */
-export function useSleepDay(date: string): SleepDay | undefined {
-  return useLiveQuery(
-    () => db.sleepDays.get(date),
-    // Re-run when the date prop changes (navigation between days).
-    [date],
-  )
+export function useSleepDay(date: string): SleepDay | null | undefined {
+  // null = no record for this date (vs undefined = query in flight), so pages
+  // can show a "no data" state instead of a skeleton that never resolves.
+  return useLiveQuery(async () => (await db.sleepDays.get(date)) ?? null, [date])
 }
 
 /**
@@ -60,6 +58,10 @@ export function useSleepDay(date: string): SleepDay | undefined {
  * night contains a late-nap session too, the nap is excluded here — callers
  * that need all sessions for a night should query `.toArray()` instead.
  */
-export function useSleepSession(date: string): SleepSession | undefined {
-  return useLiveQuery(() => db.sleepSessions.where('day').equals(date).first(), [date])
+export function useSleepSession(date: string): SleepSession | null | undefined {
+  // Same null/undefined contract as useSleepDay.
+  return useLiveQuery(
+    async () => (await db.sleepSessions.where('day').equals(date).first()) ?? null,
+    [date],
+  )
 }

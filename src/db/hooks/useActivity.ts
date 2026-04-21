@@ -39,12 +39,9 @@ export function useLatestActivityDay(): ActivityDay | null | undefined {
 }
 
 /** Returns the ActivityDay summary for a single calendar date. */
-export function useActivityDay(date: string): ActivityDay | undefined {
-  return useLiveQuery(
-    () => db.activityDays.get(date),
-    // Re-run when the date prop changes (navigation between days).
-    [date],
-  )
+export function useActivityDay(date: string): ActivityDay | null | undefined {
+  // null = no record for this date (vs undefined = query in flight).
+  return useLiveQuery(async () => (await db.activityDays.get(date)) ?? null, [date])
 }
 
 /**

@@ -39,12 +39,9 @@ export function useLatestReadinessDay(): ReadinessDay | null | undefined {
 }
 
 /** Returns the ReadinessDay summary for a single calendar date. */
-export function useReadinessDay(date: string): ReadinessDay | undefined {
-  return useLiveQuery(
-    () => db.readinessDays.get(date),
-    // Re-run when the date prop changes (navigation between days).
-    [date],
-  )
+export function useReadinessDay(date: string): ReadinessDay | null | undefined {
+  // null = no record for this date (vs undefined = query in flight).
+  return useLiveQuery(async () => (await db.readinessDays.get(date)) ?? null, [date])
 }
 
 /**
@@ -55,6 +52,6 @@ export function useReadinessDay(date: string): ReadinessDay | undefined {
  * overnight recovery. Kept in its own table (resilienceDays) because it has
  * a different field set and Oura exposes it via a separate CSV export.
  */
-export function useResilienceDay(date: string): ResilienceDay | undefined {
-  return useLiveQuery(() => db.resilienceDays.get(date), [date])
+export function useResilienceDay(date: string): ResilienceDay | null | undefined {
+  return useLiveQuery(async () => (await db.resilienceDays.get(date)) ?? null, [date])
 }

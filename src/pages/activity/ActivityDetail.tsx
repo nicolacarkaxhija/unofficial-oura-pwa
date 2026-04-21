@@ -1,7 +1,7 @@
 import { useParams, Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { TimeSeriesChart } from '@/components/charts'
-import { ScoreRing, LoadingSkeleton } from '@/components/ui'
+import { ScoreRing, LoadingSkeleton, NoDataForDate } from '@/components/ui'
 import { useActivityDay, useWorkoutsForDay, useStressForDay } from '@/db/hooks'
 import type { Workout } from '@/db/schema'
 
@@ -70,10 +70,8 @@ export default function ActivityDetail() {
   const loading = workouts === undefined || stressPoints === undefined
 
   if (loading || day === undefined) {
-    // Show skeleton while any hook is still loading.
-    // If workouts/stress are ready but day is undefined, Dexie returned no record
-    // for this date — we show the skeleton briefly, then the "no data" guard below
-    // takes over on the next render once all three hooks have settled.
+    // Show skeleton only while a query is genuinely in flight — a resolved
+    // not-found is null, handled below.
     return (
       <div className="space-y-4 px-4 pt-8 pb-6">
         <LoadingSkeleton className="h-8 w-48 rounded-lg" />
@@ -82,6 +80,10 @@ export default function ActivityDetail() {
         <LoadingSkeleton className="h-32 w-full rounded-2xl" />
       </div>
     )
+  }
+
+  if (day === null) {
+    return <NoDataForDate />
   }
 
   const metData = buildMETSeries(day.met, date)

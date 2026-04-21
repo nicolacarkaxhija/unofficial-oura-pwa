@@ -7,7 +7,8 @@
     "lastImport": "Last imported: {{date}}",
     "clearAll": "Clear all data",
     "clearConfirm": "This will delete all your health data from this device. You can re-import at any time.",
-    "storage": "Storage used: {{used}} of {{cap}}"
+    "storage": "Storage used: {{used}} of {{cap}}",
+    "cancel": "Cancel"
   },
   "appearance": {
     "title": "Appearance",

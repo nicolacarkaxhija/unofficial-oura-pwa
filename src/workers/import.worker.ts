@@ -25,15 +25,15 @@ import type {
   StressPoint,
 } from '../db/schema'
 import {
-  SleepDayRowSchema,
-  SleepSessionRowSchema,
-  ReadinessDayRowSchema,
-  ResilienceDayRowSchema,
-  ActivityDayRowSchema,
-  WorkoutRowSchema,
-  MeditationRowSchema,
-  StressRowSchema,
-} from '../connectors/oura/schema'
+  parseSleepDays,
+  parseSleepSessions,
+  parseReadinessDays,
+  parseResilienceDays,
+  parseActivityDays,
+  parseWorkouts,
+  parseMeditations,
+  parseStressPoints,
+} from '../connectors/oura/parsers'
 
 // ─── Message Protocol ─────────────────────────────────────────────────────────
 //
@@ -91,240 +91,13 @@ async function extractCsv(zip: JSZip, baseName: string): Promise<string | null> 
   return null
 }
 
-// ─── Per-file parsers → DB record transformers ───────────────────────────────
+// ─── Per-file parsers ─────────────────────────────────────────────────────────
 //
-// Each transformer validates rows with Zod safeParse (never throws on bad data)
-// then maps the snake_case CSV fields to camelCase DB interfaces.
-// Invalid rows are silently dropped — Oura CSVs can include header-only files
-// with no data rows, which is not an error.
-
-function transformSleepDays(rows: Record<string, string>[]): SleepDay[] {
-  return rows.flatMap((row) => {
-    const result = SleepDayRowSchema.safeParse(row)
-    if (!result.success) return []
-    const r = result.data
-
-    // optimal_bedtime is a JSON-encoded object in the CSV; parse defensively.
-    let optimalBedtime: SleepDay['optimalBedtime'] = null
-    if (r.optimal_bedtime) {
-      try {
-        const parsed: unknown = JSON.parse(r.optimal_bedtime)
-        if (parsed && typeof parsed === 'object' && 'start' in parsed && 'end' in parsed) {
-          optimalBedtime = parsed as { start: string; end: string }
-        }
-      } catch {
-        // malformed JSON — leave null
-      }
-    }
-
-    return [
-      {
-        day: r.day,
-        id: r.id,
-        score: r.score,
-        // Zod parses contributors as Record<string,number|null>|null; cast to the
-        // typed interface. The null-coalesce happens before the cast so it is
-        // visible to the type checker (casting first hides the nullability).
-        contributors: (r.contributors ?? {
-          deep_sleep: null,
-          efficiency: null,
-          latency: null,
-          rem_sleep: null,
-          restfulness: null,
-          timing: null,
-          total_sleep: null,
-        }) as unknown as SleepDay['contributors'],
-        optimalBedtime,
-        status: r.status ?? null,
-        spo2Percentage: r.spo2_percentage,
-        breathingDisturbanceIndex: r.breathing_disturbance_index,
-      },
-    ]
-  })
-}
-
-function transformSleepSessions(rows: Record<string, string>[]): SleepSession[] {
-  return rows.flatMap((row) => {
-    const result = SleepSessionRowSchema.safeParse(row)
-    if (!result.success) return []
-    const r = result.data
-    return [
-      {
-        id: r.id,
-        day: r.day,
-        bedtimeStart: r.bedtime_start,
-        bedtimeEnd: r.bedtime_end,
-        type: r.type,
-        efficiency: r.efficiency,
-        latency: r.latency,
-        totalSleepDuration: r.total_sleep_duration,
-        deepSleepDuration: r.deep_sleep_duration,
-        remSleepDuration: r.rem_sleep_duration,
-        lightSleepDuration: r.light_sleep_duration,
-        awakeTime: r.awake_time,
-        timeInBed: r.time_in_bed,
-        averageHeartRate: r.average_heart_rate,
-        lowestHeartRate: r.lowest_heart_rate,
-        averageHrv: r.average_hrv,
-        averageBreath: r.average_breath,
-        restlessPeriods: r.restless_periods,
-        sleepPhase5Min: r.sleep_phase_5_min,
-        heartRate: r.heart_rate,
-        hrv: r.hrv,
-        movement30Sec: r.movement_30_sec,
-      },
-    ]
-  })
-}
-
-function transformReadinessDays(rows: Record<string, string>[]): ReadinessDay[] {
-  return rows.flatMap((row) => {
-    const result = ReadinessDayRowSchema.safeParse(row)
-    if (!result.success) return []
-    const r = result.data
-    return [
-      {
-        day: r.day,
-        id: r.id,
-        score: r.score,
-        temperatureDeviation: r.temperature_deviation,
-        temperatureTrendDeviation: r.temperature_trend_deviation,
-        stressHigh: r.stress_high,
-        recoveryHigh: r.recovery_high,
-        daySummary: r.day_summary ?? null,
-        // Zod parses contributors as Record<string,number|null>|null; null-coalesce
-        // before casting so the fallback is type-checker-visible.
-        contributors: (r.contributors ?? {
-          activity_balance: null,
-          body_temperature: null,
-          hrv_balance: null,
-          previous_day_activity: null,
-          previous_night: null,
-          recovery_index: null,
-          resting_heart_rate: null,
-          sleep_balance: null,
-        }) as unknown as ReadinessDay['contributors'],
-      },
-    ]
-  })
-}
-
-function transformResilienceDays(rows: Record<string, string>[]): ResilienceDay[] {
-  // ResilienceDayRowSchema has `contributors` as a JSON object containing
-  // { sleep_recovery, daytime_recovery, stress } — we destructure those out
-  // and map to the typed ResilienceDay fields.
-  return rows.flatMap((row) => {
-    const result = ResilienceDayRowSchema.safeParse(row)
-    if (!result.success) return []
-    const r = result.data
-    // r.contributors is already Record<string, number | null> | null from the schema
-    const c = r.contributors
-    return [
-      {
-        day: r.day,
-        id: r.id,
-        level: r.level,
-        sleepRecovery: c?.['sleep_recovery'] ?? null,
-        daytimeRecovery: c?.['daytime_recovery'] ?? null,
-        stress: c?.['stress'] ?? null,
-      },
-    ]
-  })
-}
-
-function transformActivityDays(rows: Record<string, string>[]): ActivityDay[] {
-  return rows.flatMap((row) => {
-    const result = ActivityDayRowSchema.safeParse(row)
-    if (!result.success) return []
-    const r = result.data
-    return [
-      {
-        day: r.day,
-        id: r.id,
-        score: r.score,
-        steps: r.steps,
-        totalCalories: r.total_calories,
-        activeCalories: r.active_calories,
-        equivalentWalkingDistance: r.equivalent_walking_distance,
-        nonWearTime: r.non_wear_time,
-        restingTime: r.resting_time,
-        sedentaryTime: r.sedentary_time,
-        highActivityTime: r.high_activity_time,
-        mediumActivityTime: r.medium_activity_time,
-        lowActivityTime: r.low_activity_time,
-        inactivityAlerts: r.inactivity_alerts,
-        targetCalories: r.target_calories,
-        targetMeters: r.target_meters,
-        averageMetMinutes: r.average_met_minutes,
-        metersToTarget: r.meters_to_target,
-        // r.contributors is Record<string, number | null> | null; default to {}
-        // when null (ActivityDay expects Record<string, number | null>).
-        contributors: r.contributors ?? {},
-        class5Min: r.class_5_min,
-        met: r.met,
-      },
-    ]
-  })
-}
-
-function transformWorkouts(rows: Record<string, string>[]): Workout[] {
-  return rows.flatMap((row) => {
-    const result = WorkoutRowSchema.safeParse(row)
-    if (!result.success) return []
-    const r = result.data
-    return [
-      {
-        id: r.id,
-        day: r.day,
-        startDatetime: r.start_datetime,
-        endDatetime: r.end_datetime,
-        activity: r.activity,
-        calories: r.calories,
-        distance: r.distance,
-        intensity: r.intensity ?? null,
-        label: r.label ?? null,
-        source: r.source ?? null,
-      },
-    ]
-  })
-}
-
-function transformMeditations(rows: Record<string, string>[]): Meditation[] {
-  return rows.flatMap((row) => {
-    const result = MeditationRowSchema.safeParse(row)
-    if (!result.success) return []
-    const r = result.data
-    return [
-      {
-        id: r.id,
-        day: r.day,
-        startDatetime: r.start_datetime,
-        endDatetime: r.end_datetime,
-        type: r.type ?? null,
-        mood: r.mood ?? null,
-      },
-    ]
-  })
-}
-
-function transformStressPoints(rows: Record<string, string>[]): Omit<StressPoint, 'id'>[] {
-  return rows.flatMap((row) => {
-    const result = StressRowSchema.safeParse(row)
-    if (!result.success) return []
-    const r = result.data
-    // `day` is derived from the timestamp (YYYY-MM-DD prefix) — the stress CSV
-    // has no explicit day column, only an ISO 8601 timestamp.
-    const day = r.timestamp.slice(0, 10)
-    return [
-      {
-        day,
-        timestamp: r.timestamp,
-        stressValue: r.stress_value,
-        recoveryValue: r.recovery_value,
-      },
-    ]
-  })
-}
+// Row transformation is delegated to src/connectors/oura/parsers — the module
+// the unit suite exercises directly. The worker previously carried its own
+// copies of these transforms, which silently diverged from the tested ones
+// (e.g. the legacy "HH:MM-HH:MM" optimal_bedtime format was handled only in
+// the tested copy). One implementation, one test surface.
 
 // ─── Main import logic ────────────────────────────────────────────────────────
 
@@ -354,7 +127,7 @@ async function runImport(blob: Blob): Promise<void> {
   const activityDays: ActivityDay[] = []
   const workouts: Workout[] = []
   const meditations: Meditation[] = []
-  const stressPoints: Omit<StressPoint, 'id'>[] = []
+  const stressPoints: StressPoint[] = []
 
   for (const { name, startPct } of files) {
     post({
@@ -368,28 +141,28 @@ async function runImport(blob: Blob): Promise<void> {
 
     switch (name) {
       case 'sleep.csv':
-        sleepDays.push(...transformSleepDays(rows))
+        sleepDays.push(...parseSleepDays(rows))
         break
       case 'sleep_session.csv':
-        sleepSessions.push(...transformSleepSessions(rows))
+        sleepSessions.push(...parseSleepSessions(rows))
         break
       case 'readiness.csv':
-        readinessDays.push(...transformReadinessDays(rows))
+        readinessDays.push(...parseReadinessDays(rows))
         break
       case 'resilience.csv':
-        resilienceDays.push(...transformResilienceDays(rows))
+        resilienceDays.push(...parseResilienceDays(rows))
         break
       case 'daily_activity.csv':
-        activityDays.push(...transformActivityDays(rows))
+        activityDays.push(...parseActivityDays(rows))
         break
       case 'workouts.csv':
-        workouts.push(...transformWorkouts(rows))
+        workouts.push(...parseWorkouts(rows))
         break
       case 'meditation.csv':
-        meditations.push(...transformMeditations(rows))
+        meditations.push(...parseMeditations(rows))
         break
       case 'stress.csv':
-        stressPoints.push(...transformStressPoints(rows))
+        stressPoints.push(...parseStressPoints(rows))
         break
     }
   }
@@ -432,7 +205,7 @@ async function runImport(blob: Blob): Promise<void> {
         // StressPoint uses auto-increment PK — bulkPut with no id causes Dexie
         // to assign new IDs each time, so we clear first then add to avoid
         // accumulating duplicates across re-imports.
-        db.stressPoints.clear().then(() => db.stressPoints.bulkAdd(stressPoints as StressPoint[])),
+        db.stressPoints.clear().then(() => db.stressPoints.bulkAdd(stressPoints)),
       ])
 
       // Store the original ZIP blob for Safari eviction recovery.

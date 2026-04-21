@@ -35,20 +35,25 @@ async function checkAndRepair(): Promise<void> {
   // Dexie's Table<MetaEntry, string>.get() already returns MetaEntry | undefined;
   // no cast needed — the type is inferred from the table's generic parameter.
   const zipEntry = await db.meta.get('zipBlob')
-  if (!zipEntry?.value) {
+  // instanceof narrows MetaEntry's `unknown` value — anything but a real Blob
+  // (corrupted entry, old format) is treated the same as a missing one.
+  if (!(zipEntry?.value instanceof Blob)) {
     // Both the records and the ZIP are gone (full Safari eviction).
     // Signal to Onboarding.tsx that a re-import is required.
     window.dispatchEvent(new CustomEvent('oura:eviction', { detail: 'no-zip' }))
     return
   }
 
-  // ZIP blob survived; trigger silent re-import via the worker.
-  // The blob is passed in the detail object (not as a top-level CustomEventInit
-  // property, which doesn't exist in the DOM type) so the Onboarding listener
-  // can extract it via e.detail.blob.
-  window.dispatchEvent(
-    new CustomEvent('oura:eviction', { detail: { type: 'reparse', blob: zipEntry.value } }),
-  )
+  // ZIP blob survived: silently re-import it. No UI involvement needed —
+  // useLiveQuery flips useHasData() as soon as rows land, and until then the
+  // user sees Onboarding, which is accurate ("your data is being restored").
+  // Failures degrade to the no-zip path: the user is asked to re-import manually.
+  try {
+    const { runImport } = await import('@/workers/runImport')
+    await runImport(zipEntry.value)
+  } catch {
+    window.dispatchEvent(new CustomEvent('oura:eviction', { detail: 'no-zip' }))
+  }
 }
 
 // ─── App Root ─────────────────────────────────────────────────────────────────

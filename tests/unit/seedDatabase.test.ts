@@ -99,17 +99,13 @@ describe('seedDatabase', () => {
     expect(secondRun.map((d) => d.score)).toEqual(firstRun.map((d) => d.score))
   })
 
-  it('re-seeding without clearing duplicates stressPoints (characterisation of a bug)', async () => {
-    // seedDatabase uses bulkAdd for stressPoints (auto-increment PK) with no
-    // clear() first — unlike the import worker, which clears before adding.
-    // Running the seeder twice therefore doubles stress rows while every
-    // day-keyed table stays at 90. This is a genuine defect in
-    // src/dev/seedDatabase.ts; the test characterises today's behaviour so
-    // the fix (adding clear-before-add) will be visible as a test update.
+  it('re-seeding is idempotent for stressPoints (clear-before-add)', async () => {
+    // stressPoints has an auto-increment PK, so the seeder clears before
+    // adding — mirroring the import worker — otherwise re-seeding doubles rows.
     await seedDatabase()
     await seedDatabase()
 
     expect(await db.sleepDays.count()).toBe(90)
-    expect(await db.stressPoints.count()).toBe(720)
+    expect(await db.stressPoints.count()).toBe(360)
   })
 })

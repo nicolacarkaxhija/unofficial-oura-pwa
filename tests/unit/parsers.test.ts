@@ -307,10 +307,13 @@ describe('parseResilienceDays', () => {
     expect(record.stress).toBe(80)
   })
 
-  it('skips a row missing required `level` field and warns', () => {
+  it('keeps a row missing `level`, downgraded to null', () => {
+    // level is tolerant (.nullable().catch(null)): a blank or unknown tier
+    // must not drop the row.
     const bad = { day: '2024-03-15', id: 'x', contributors: '{}' }
-    expect(parseResilienceDays([bad])).toHaveLength(0)
-    expect(warnSpy).toHaveBeenCalledOnce()
+    const result = parseResilienceDays([bad])
+    expect(result).toHaveLength(1)
+    expect(result[0]?.level).toBeNull()
   })
 
   it('returns only valid records when mixed with invalid rows', () => {

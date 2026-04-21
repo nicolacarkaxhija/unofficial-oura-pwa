@@ -38,7 +38,11 @@ function randFloat(seed: number, min: number, max: number): number {
 
 const SLEEP_PHASES = [1, 3, 3, 4, 4, 4, 3, 2, 2, 3, 3, 4, 4, 3, 2, 2, 1, 3, 3, 2, 2, 1]
 const RESILIENCE_LEVELS: ResilienceDay['level'][] = [
-  'exceptional', 'strong', 'solid', 'adequate', 'weak',
+  'exceptional',
+  'strong',
+  'solid',
+  'adequate',
+  'weak',
 ]
 const WORKOUT_TYPES = ['running', 'cycling', 'strength_training', 'yoga', 'walking']
 
@@ -57,7 +61,7 @@ export async function seedDatabase(): Promise<void> {
   for (let i = DAYS - 1; i >= 0; i--) {
     const date = subDays(today, i)
     const day = format(date, 'yyyy-MM-dd')
-    const s = i * 7  // seed offset per day
+    const s = i * 7 // seed offset per day
 
     // ── Sleep ────────────────────────────────────────────────────────────
     const sleepScore = rand(s + 1, 58, 95)
@@ -125,7 +129,9 @@ export async function seedDatabase(): Promise<void> {
       sleepPhase5Min: phases,
       heartRate: hr,
       hrv,
-      movement30Sec: Array.from({ length: phaseCount * 10 }, (_, idx) => rand(s + idx + 200, 0, 100)),
+      movement30Sec: Array.from({ length: phaseCount * 10 }, (_, idx) =>
+        rand(s + idx + 200, 0, 100),
+      ),
     })
 
     // ── Readiness ────────────────────────────────────────────────────────
@@ -268,7 +274,9 @@ export async function seedDatabase(): Promise<void> {
       db.activityDays.bulkPut(activityDays),
       db.workouts.bulkPut(workouts),
       db.meditations.bulkPut(meditations),
-      db.stressPoints.bulkAdd(stressPoints),
+      // clear-then-add mirrors the import worker: stressPoints has an
+      // auto-increment PK, so bulkAdd without clear doubles rows on re-seed.
+      db.stressPoints.clear().then(() => db.stressPoints.bulkAdd(stressPoints)),
       db.meta.put({ key: 'importStats', value: stats }),
     ])
   })

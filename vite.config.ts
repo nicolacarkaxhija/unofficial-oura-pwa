@@ -25,17 +25,17 @@ export default defineConfig({
         short_name: 'Oura',
         description:
           'View your Oura Ring data without a subscription — powered by your GDPR data export',
-        theme_color: '#0f172a',
+        theme_color: '#f8fafc',
         background_color: '#0f172a',
         display: 'standalone',
         orientation: 'portrait-primary',
         scope: '/',
         start_url: '/',
         icons: [
-          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
           {
-            src: '/icons/icon-512-maskable.png',
+            src: '/icon-512-maskable.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',

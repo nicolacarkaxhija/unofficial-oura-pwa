@@ -7,7 +7,8 @@
     "lastImport": "Ultima importazione: {{date}}",
     "clearAll": "Cancella tutti i dati",
     "clearConfirm": "Verranno eliminati tutti i tuoi dati sanitari da questo dispositivo. Potrai reimportarli in qualsiasi momento.",
-    "storage": "Spazio usato: {{used}} di {{cap}}"
+    "storage": "Spazio usato: {{used}} di {{cap}}",
+    "cancel": "Annulla"
   },
   "appearance": {
     "title": "Aspetto",

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ProgressBar } from '@/components/ui'
+import { runImport } from '@/workers/runImport'
 
 // DEV-only seed function — Vite's tree-shaker drops this import in production
 // because it's only referenced inside `if (import.meta.env.DEV)` blocks.
@@ -21,15 +22,6 @@ const DEV = import.meta.env.DEV
 // re-renders the root → Onboarding unmounts and the normal app shell appears.
 // No imperative navigation is needed; the reactive DB state drives everything.
 
-interface WorkerMessage {
-  type: 'progress' | 'done' | 'error'
-  payload?: {
-    pct?: number
-    phase?: string
-    message?: string
-  }
-}
-
 export default function Onboarding() {
   const { t } = useTranslation('onboarding')
 
@@ -44,7 +36,6 @@ export default function Onboarding() {
 
   const [seeding, setSeeding] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const workerRef = useRef<Worker | null>(null)
 
   // ── Dev seed ────────────────────────────────────────────────────────────
   // Bypasses the ZIP pipeline and writes synthetic data directly to IndexedDB.
@@ -73,13 +64,6 @@ export default function Onboarding() {
     }
   }, [])
 
-  // Terminate the worker if the component unmounts mid-import
-  useEffect(() => {
-    return () => {
-      workerRef.current?.terminate()
-    }
-  }, [])
-
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -90,42 +74,21 @@ export default function Onboarding() {
     setError(null)
     setEvicted(false)
 
-    // Spawn a new module worker for each import.
-    // `import.meta.url` is resolved at bundle-build time by Vite's worker plugin,
-    // giving us a code-split worker chunk that doesn't bloat the main bundle.
-    const worker = new Worker(new URL('../workers/import.worker.ts', import.meta.url), {
-      type: 'module',
+    runImport(file, ({ pct: p, phase: ph }) => {
+      setPct(p)
+      if (ph) setPhase(ph)
     })
-    workerRef.current = worker
-
-    worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
-      const { type, payload } = event.data
-
-      if (type === 'progress') {
-        if (payload?.pct !== undefined) setPct(payload.pct)
-        if (payload?.phase !== undefined) setPhase(payload.phase)
-      } else if (type === 'done') {
-        // Worker finished. useLiveQuery in App.tsx will detect the new data
-        // and replace this component automatically — no navigation needed.
-        worker.terminate()
-        workerRef.current = null
-      } else {
-        // type === 'error' — the only remaining variant in the union
-        setError(payload?.message ?? 'Unknown error')
+      .then(() => {
+        // useLiveQuery in App.tsx detects the new data and replaces this
+        // component. Resetting importing is a safety net for partial imports
+        // where hasData stays false (e.g. an export without sleep rows) —
+        // without it the progress bar would stick at ~96% forever.
         setImporting(false)
-        worker.terminate()
-        workerRef.current = null
-      }
-    }
-
-    worker.onerror = (err) => {
-      setError(err.message)
-      setImporting(false)
-      worker.terminate()
-      workerRef.current = null
-    }
-
-    worker.postMessage({ type: 'start', payload: { blob: file } })
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : 'Unknown error')
+        setImporting(false)
+      })
   }
 
   const steps = ['step1', 'step2', 'step3', 'step4', 'step5', 'step6'] as const

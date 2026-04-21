@@ -60,6 +60,13 @@ class OuraPWADatabase extends Dexie {
       stressPoints: '++id, [day+timestamp]',
       meta: 'key',
     })
+
+    // v2: standalone `day` index on stressPoints. Dexie's where('day') is NOT
+    // satisfied by the compound [day+timestamp] index — the stress query in
+    // useStressForDay threw a SchemaError, breaking ActivityDetail's stress section.
+    this.version(2).stores({
+      stressPoints: '++id, day, [day+timestamp]',
+    })
   }
 }
 

@@ -131,7 +131,10 @@ export const ReadinessDayRowSchema = z.object({
 export const ResilienceDayRowSchema = z.object({
   day: z.string(),
   id: z.string(),
-  level: z.enum(['exceptional', 'strong', 'solid', 'adequate', 'weak']),
+  // Tolerant by design: an unknown or empty level (new Oura tier, blank CSV
+  // cell) becomes null instead of dropping the whole row — consistent with the
+  // parse-permissively principle used for every other field.
+  level: z.enum(['exceptional', 'strong', 'solid', 'adequate', 'weak']).nullable().catch(null),
   contributors: nullableJsonObject,
 })
 

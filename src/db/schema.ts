@@ -91,7 +91,7 @@ export interface ReadinessDay {
 export interface ResilienceDay {
   day: string // PK
   id: string
-  level: 'exceptional' | 'strong' | 'solid' | 'adequate' | 'weak'
+  level: 'exceptional' | 'strong' | 'solid' | 'adequate' | 'weak' | null
   sleepRecovery: number | null
   daytimeRecovery: number | null
   stress: number | null

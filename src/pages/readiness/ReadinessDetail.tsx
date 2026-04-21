@@ -1,7 +1,7 @@
 import { useParams, Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { ContributorRadar } from '@/components/charts'
-import { ContributorBar, ScoreRing, LoadingSkeleton } from '@/components/ui'
+import { ContributorBar, ScoreRing, LoadingSkeleton, NoDataForDate } from '@/components/ui'
 import { useReadinessDay, useResilienceDay } from '@/db/hooks'
 import type { ResilienceDay } from '@/db/schema'
 
@@ -18,7 +18,9 @@ import type { ResilienceDay } from '@/db/schema'
 //   We show ±°C with a colour that matches the semantic: positive = warmer than
 //   baseline (potential stress/illness), negative = cooler (potential recovery).
 
-type ResilienceLevel = ResilienceDay['level']
+// level is null when the export carried an unknown/blank tier; the badge is
+// simply hidden in that case, so the color map only needs the known levels.
+type ResilienceLevel = NonNullable<ResilienceDay['level']>
 
 const RESILIENCE_COLORS: Record<ResilienceLevel, string> = {
   exceptional: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
@@ -36,11 +38,8 @@ export default function ReadinessDetail() {
   const day = useReadinessDay(date)
   const resilience = useResilienceDay(date)
 
-  // day is ReadinessDay | undefined.
-  // useLiveQuery returns undefined while loading AND when the record is not found.
-  // We treat both states the same: show a skeleton until we know it's not just
-  // "in-flight", then fall through to render the day data.
-  if (!day) {
+  // undefined → query in flight → skeleton; null → no record for this date.
+  if (day === undefined) {
     return (
       <div className="space-y-4 px-4 pt-8 pb-6">
         <LoadingSkeleton className="h-8 w-48 rounded-lg" />
@@ -48,6 +47,10 @@ export default function ReadinessDetail() {
         <LoadingSkeleton className="h-48 w-full rounded-2xl" />
       </div>
     )
+  }
+
+  if (day === null) {
+    return <NoDataForDate />
   }
 
   const contributors = day.contributors
@@ -136,7 +139,7 @@ export default function ReadinessDetail() {
       )}
 
       {/* Resilience level badge */}
-      {resilience && (
+      {resilience && resilience.level !== null && (
         <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-800">
           <p className="mb-2 text-xs font-semibold text-slate-500 uppercase dark:text-slate-400">
             {t('resilience.title')}

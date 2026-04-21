@@ -18,12 +18,6 @@ import { useLatestSleepDay, useLatestReadinessDay, useLatestActivityDay } from '
 // yet. We show a skeleton grid to avoid layout shift when data arrives.
 // null means the table is empty — rendered as "—" cards rather than skeletons.
 
-const SCORE_COLORS = {
-  sleep: '#60a5fa', // blue-400 — consistent with hypnogram's light-sleep colour
-  readiness: '#6366f1', // indigo-500 — matches ContributorRadar stroke
-  activity: '#10b981', // emerald-500 — Oura's activity brand colour
-} as const
-
 export default function Dashboard() {
   const { t } = useTranslation('common')
   const { t: tSleep } = useTranslation('sleep')
@@ -72,7 +66,6 @@ export default function Dashboard() {
               title={tSleep('title')}
               score={sleepDay?.score ?? null}
               color="blue"
-              hexColor={SCORE_COLORS.sleep}
               subtitle={tSleep('score')}
             />
           </button>
@@ -88,7 +81,6 @@ export default function Dashboard() {
               title={tReadiness('title')}
               score={readinessDay?.score ?? null}
               color="indigo"
-              hexColor={SCORE_COLORS.readiness}
               subtitle={tReadiness('score')}
             />
           </button>
@@ -104,7 +96,6 @@ export default function Dashboard() {
               title={tActivity('title')}
               score={activityDay?.score ?? null}
               color="emerald"
-              hexColor={SCORE_COLORS.activity}
               subtitle={tActivity('score')}
             />
           </button>
@@ -138,7 +129,6 @@ interface DashboardCardProps {
   title: string
   score: number | null
   color: string
-  hexColor: string
   subtitle: string
 }
 
