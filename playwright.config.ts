@@ -10,7 +10,10 @@ export default defineConfig({
   ...(process.env['CI'] ? { workers: 1 as const } : {}),
   reporter: process.env['CI'] ? 'github' : 'list',
   use: {
-    baseURL: 'http://localhost:5173',
+    // Dedicated port (not Vite's default 5173): with reuseExistingServer,
+    // any other Vite project running on the default port would silently get
+    // tested instead of this app. --strictPort makes a collision a loud failure.
+    baseURL: 'http://localhost:5199',
     trace: 'on-first-retry',
   },
   projects: [
@@ -20,8 +23,8 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
+    command: 'npm run dev -- --port 5199 --strictPort',
+    url: 'http://localhost:5199',
     reuseExistingServer: !process.env['CI'],
   },
 })

@@ -10,7 +10,10 @@ export default defineConfig({
     // jsdom gives us a DOM environment so React components can render,
     // and fake-indexeddb can polyfill IndexedDB without a real browser.
     environment: 'jsdom',
-    setupFiles: ['./tests/setup.ts'],
+    // The fake-indexeddb registration must come first: src/db/client.ts
+    // constructs its Dexie singleton at import time and needs a global
+    // indexedDB to exist before any test file's module graph is evaluated.
+    setupFiles: ['./tests/unit/setup.fake-indexeddb.ts', './tests/setup.ts'],
     globals: true,
     coverage: {
       provider: 'v8',
