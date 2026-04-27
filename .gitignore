@@ -22,3 +22,6 @@ test-results
 # Editor
 .vscode/settings.json
 .idea
+
+# Local working notes
+brainstorming.md
