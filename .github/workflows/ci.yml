@@ -1,22 +1,31 @@
-# CI workflow: runs on every push (all branches) and on pull requests targeting main.
-# The four jobs run in sequence because each depends on the previous passing —
-# there's no point linting code that doesn't typecheck, and no point building
-# code whose tests are red.
+# CI/CD pipeline.
+#
+# Shape (trunk-based, deploy gated on green):
+#   typecheck → lint → test ─┬→ build ──────────┬→ deploy-prod (main only) → smoke
+#                            └→ e2e ────────────┘
+#                                build (PR) ────→ deploy-preview (PRs only)
+#
+# Policy decisions (see docs/TECHNICAL_SPEC.md):
+# - Direct pushes to main are allowed, but production deploys ONLY from a green
+#   run: the deploy job `needs` every quality gate. A broken commit can land on
+#   main but can never reach users.
+# - Every PR gets an isolated preview URL on Cloudflare Pages — that IS the
+#   staging environment; a static PWA gains nothing from a fixed staging site.
+# - Observability is deliberately server-side only (Cloudflare request metrics
+#   + the smoke job): the app promises "no analytics, no data leaves the
+#   device", so no client-side error tracking or RUM may ever be added.
 name: CI
 
 on:
   push:
     branches:
-      - '**'   # every branch, so devs get feedback before opening a PR
+      - '**' # every branch, so devs get feedback before opening a PR
   pull_request:
     branches:
-      - main   # gate merges to main
+      - main # gate merges to main
 
 jobs:
   # ── 1. Typecheck ──────────────────────────────────────────────────────────
-  # Run tsc --noEmit first because type errors are the fastest signal that
-  # something is structurally broken. This also means lint/test won't waste
-  # runner-minutes on code that can't even compile.
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
@@ -30,8 +39,6 @@ jobs:
           node-version: '22'
 
       # Cache node_modules keyed on the exact contents of package-lock.json.
-      # A lockfile change means a dependency changed, so we must bust the cache
-      # and re-install from scratch. Cache hits make this step near-instant.
       - name: Cache node_modules
         uses: actions/cache@v4
         with:
@@ -40,9 +47,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      # npm ci is used (not npm install) because it installs exactly what the
-      # lockfile says, fails on any discrepancy, and never mutates the lockfile.
-      # This guarantees reproducible builds across machines and CI runs.
+      # npm ci installs exactly what the lockfile says and never mutates it.
       - name: Install dependencies
         run: npm ci
 
@@ -50,13 +55,10 @@ jobs:
         run: npm run typecheck
 
   # ── 2. Lint ───────────────────────────────────────────────────────────────
-  # ESLint catches style violations, unused vars, react-hooks rule violations,
-  # etc. Kept as a separate job so its failure is reported distinctly from
-  # typecheck failures — makes triage faster.
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    needs: typecheck   # only lint code that already typechecks
+    needs: typecheck # only lint code that already typechecks
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -80,16 +82,11 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
-  # ── 3. Test (with coverage) ───────────────────────────────────────────────
-  # Vitest runs the unit/integration suite and emits lcov + text coverage
-  # reports (configured in vitest.config.ts, provider: v8, output: coverage/).
-  # We upload the coverage directory as a workflow artifact so it can be
-  # consumed by external coverage services (Codecov, Coveralls, etc.) or
-  # inspected manually from the Actions UI.
+  # ── 3. Unit tests (with coverage) ─────────────────────────────────────────
   test:
     name: Test
     runs-on: ubuntu-latest
-    needs: lint   # don't run tests if lint fails — keeps the log clean
+    needs: lint
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -110,32 +107,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # test:coverage (not plain test) so coverage data is generated.
-      # The coverage directory output path matches vitest's default: ./coverage
       - name: Run tests with coverage
         run: npm run test:coverage
 
-      # Upload the coverage/ directory as an artifact so it persists after the
-      # job finishes. Useful for hooking into Codecov, or downloading locally
-      # if a coverage regression needs investigation.
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage/
-          # Keep artifacts for 30 days — long enough to compare across PRs
-          # but short enough to not bloat storage.
           retention-days: 30
 
-  # ── 4. Build ──────────────────────────────────────────────────────────────
-  # The build script runs tsc --noEmit again (belt-and-suspenders) then
-  # invokes Vite to produce the dist/ bundle. Running this as the final job
-  # confirms the production artifact can actually be built from the current
-  # source — typecheck alone doesn't catch Vite/plugin config issues.
-  build:
-    name: Build
+  # ── 4. E2E (Playwright) ───────────────────────────────────────────────────
+  # Full browser tests against the Vite dev server (playwright.config.ts
+  # starts it). These cover the highest-risk integration path — real ZIP →
+  # worker → Dexie → UI — which unit tests cannot. Runs in parallel with
+  # `build` since both only need `test` to have passed.
+  e2e:
+    name: E2E
     runs-on: ubuntu-latest
-    needs: test   # only build if tests pass
+    needs: test
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -156,5 +146,133 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Chromium only — matches the projects list in playwright.config.ts.
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        run: npx playwright test
+
+      # Traces/screenshots are only produced for failures (trace: on-first-retry),
+      # so this artifact is tiny on green runs and invaluable on red ones.
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+  # ── 5. Build ──────────────────────────────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22 (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm ci
+
+      # VITE_APP_VERSION surfaces the deployed commit in Settings → About,
+      # so user bug reports can name the exact build they're running.
       - name: Build production bundle
         run: npm run build
+        env:
+          VITE_APP_VERSION: ${{ github.sha }}
+
+      # The deploy jobs reuse this exact artifact — what was tested is what
+      # ships, rather than rebuilding (and potentially diverging) at deploy time.
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  # ── 6. Deploy preview (PRs) ───────────────────────────────────────────────
+  # Every PR gets an isolated URL (<hash>.unofficial-oura-pwa.pages.dev, plus
+  # a stable <branch> alias). This is the staging environment.
+  deploy-preview:
+    name: Deploy preview
+    runs-on: ubuntu-latest
+    needs: [build, e2e]
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Download dist
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Deploy to Cloudflare Pages (preview)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=unofficial-oura-pwa --branch=${{ github.head_ref }}
+
+  # ── 7. Deploy production (main) ───────────────────────────────────────────
+  deploy-prod:
+    name: Deploy production
+    runs-on: ubuntu-latest
+    # The gate: every quality job must be green before anything ships.
+    needs: [lint, e2e, build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Download dist
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Deploy to Cloudflare Pages (production)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=unofficial-oura-pwa --branch=main
+
+  # ── 8. Post-deploy smoke test ─────────────────────────────────────────────
+  # Verifies the live site actually serves what we shipped: the SPA shell,
+  # a deep link (exercises the SPA fallback), the manifest, and the service
+  # worker. This is the production health check — with no client telemetry
+  # (privacy promise), a failed smoke run is our uptime alarm.
+  smoke:
+    name: Smoke test (production)
+    runs-on: ubuntu-latest
+    needs: deploy-prod
+    steps:
+      - name: Probe production endpoints
+        run: |
+          set -e
+          base="https://unofficial-oura-pwa.pages.dev"
+          for path in "/" "/sleep/2026-01-01" "/manifest.webmanifest" "/sw.js"; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --retry 3 --retry-delay 5 "$base$path")
+            echo "$base$path -> $code"
+            [ "$code" = "200" ] || exit 1
+          done
+          # The shell must actually be our app, not an error page.
+          curl -s "$base/" | grep -q '<div id="root">' || { echo "root div missing"; exit 1; }

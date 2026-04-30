@@ -173,7 +173,9 @@ export default function Settings() {
       {/* ── About ─────────────────────────────────────────────────────────── */}
       <Section title={t('about.title')}>
         <p className="mb-2 text-sm text-slate-500 dark:text-slate-400">
-          {t('about.version', { version: '0.1.0' })}
+          {/* Short SHA of the deployed commit (CI injects VITE_APP_VERSION);
+              "dev" locally. More useful than a marketing version for support. */}
+          {t('about.version', { version: (import.meta.env.VITE_APP_VERSION ?? 'dev').slice(0, 7) })}
         </p>
         <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">{t('about.legal')}</p>
         <p className="text-sm text-slate-500 dark:text-slate-400">{t('about.privacy')}</p>

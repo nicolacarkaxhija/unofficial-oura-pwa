@@ -14,8 +14,6 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "changeset": "changeset",
-    "release": "changeset publish",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -45,7 +43,6 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.27.0",
     "@eslint/js": "^9.0.0",
     "@playwright/test": "^1.45.0",
     "@tailwindcss/vite": "^4.0.0",
