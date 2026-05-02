@@ -18,7 +18,14 @@ export default defineConfig([
     ],
   },
   {
-    extends: [js.configs.recommended, ...tseslint.configs.strictTypeChecked],
+    // react-hooks v7 ships its own flat config; extending it replaces the
+    // manual plugins+rules registration (whose plugin object no longer
+    // satisfies ESLint 10's Plugin type).
+    extends: [
+      js.configs.recommended,
+      ...tseslint.configs.strictTypeChecked,
+      reactHooks.configs.flat.recommended,
+    ],
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
       parserOptions: {
@@ -27,11 +34,9 @@ export default defineConfig([
       },
     },
     plugins: {
-      'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
       // Warn when exporting non-components from .tsx files (HMR requirement)
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       // `any` is forbidden — use `unknown` and narrow with Zod or type guards
