@@ -79,9 +79,14 @@ test('sleep detail page shows a sleep score element', async () => {
   await firstItem.click()
   await expect(seededPage).toHaveURL(/\/sleep\/\d{4}-\d{2}-\d{2}/)
 
+  // Wait for the detail page to mount (its Back link is unique to it) before
+  // asserting — "Sleep Score" also appears on every list row, so an unanchored
+  // getByText would hit a strict-mode violation while the list is still up.
+  await expect(seededPage.getByRole('link', { name: 'Back' })).toBeVisible()
+
   // i18n key sleep:score → "Sleep Score". The score value itself is dynamic,
   // so we check for the label, not the number.
-  await expect(seededPage.getByText('Sleep Score')).toBeVisible()
+  await expect(seededPage.getByText(/Sleep Score: \d+/).first()).toBeVisible()
 })
 
 test('invalid date in URL /sleep/not-a-date shows an error message', async ({ browser }) => {

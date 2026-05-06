@@ -240,17 +240,17 @@ export async function buildFixtureZip(options: FixtureZipOptions = {}): Promise<
   // If the import worker uses these names as lookup keys, the fixture will
   // exercise that lookup without any stubbing.
   zip.file('sleep.csv', toCsv(sleepDayRows(dates)))
-  zip.file('sleep_sessions.csv', toCsv(sleepSessionRows(dates)))
+  zip.file('sleep_session.csv', toCsv(sleepSessionRows(dates)))
   zip.file('readiness.csv', toCsv(readinessDayRows(dates)))
   zip.file('resilience.csv', toCsv(resilienceDayRows(dates)))
-  zip.file('activity.csv', toCsv(activityDayRows(dates)))
+  zip.file('daily_activity.csv', toCsv(activityDayRows(dates)))
 
   if (includeWorkouts) {
     zip.file('workouts.csv', toCsv(workoutRows(dates)))
   }
 
   if (includeMeditations) {
-    zip.file('meditations.csv', toCsv(meditationRows(dates)))
+    zip.file('meditation.csv', toCsv(meditationRows(dates)))
   }
 
   if (includeStress) {

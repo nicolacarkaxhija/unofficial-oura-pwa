@@ -102,7 +102,9 @@ test('clearing all data in Settings causes onboarding to reappear', async ({ pag
 
   // Navigate to Settings.
   await page.goto('/settings')
-  await expect(page.getByText('Settings')).toBeVisible()
+  // Role-anchored: plain getByText('Settings') also matches text inside the
+  // TanStack Router devtools panel in dev mode.
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
 
   // Trigger "Clear all data" — i18n key settings:data.clearAll.
   await page.getByRole('button', { name: 'Clear all data' }).click()

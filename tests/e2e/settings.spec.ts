@@ -35,13 +35,13 @@ test('navigating to /settings shows import button and theme selector', async ({ 
 test('switching language to Italian changes nav labels to Italian', async ({ page }) => {
   await page.goto('/settings')
 
-  // The language selector is expected to be a <select> or combobox labelled
-  // by settings:appearance.language → "Language".
-  const langSelector = page.getByLabel('Language')
-  await expect(langSelector).toBeVisible()
+  // The language selector is a segmented button group; each language renders
+  // as a button labelled with its own endonym ("Italiano", "English").
+  const italianBtn = page.getByRole('button', { name: 'Italiano' })
+  await expect(italianBtn).toBeVisible()
 
   // Select Italian.
-  await langSelector.selectOption('it')
+  await italianBtn.click()
 
   // After the language change, the nav labels should switch to Italian.
   // i18n key common:nav.sleep in Italian → "Sonno".
@@ -57,11 +57,12 @@ test('switching theme to dark adds the dark class to <html>', async ({ page }) =
   await page.goto('/settings')
 
   // ThemeContext applies the `dark` class to <html> synchronously on theme
-  // change. The theme selector is labelled by settings:appearance.theme.
-  const themeSelector = page.getByLabel('Theme')
-  await expect(themeSelector).toBeVisible()
+  // change. The theme selector is a segmented button group
+  // (settings:appearance.themeDark → "Dark").
+  const darkBtn = page.getByRole('button', { name: 'Dark' })
+  await expect(darkBtn).toBeVisible()
 
-  await themeSelector.selectOption('dark')
+  await darkBtn.click()
 
   // Check that <html> has the `dark` class. This is what activates Tailwind's
   // dark: variants throughout the app.

@@ -60,7 +60,9 @@ test('clicking a readiness day navigates to detail with contributor section', as
 
   // The detail page renders a contributors section.
   // i18n key readiness:contributors.title → "Contributors".
-  await expect(seededPage.getByText('Contributors')).toBeVisible()
+  // Two sections legitimately carry a "Contributors" heading (radar +
+  // breakdown list); assert on headings and accept either.
+  await expect(seededPage.getByRole('heading', { name: 'Contributors' }).first()).toBeVisible()
 
   // At least one contributor chip/row should be present.
   // The implementation renders items with data-testid="contributor-item".
