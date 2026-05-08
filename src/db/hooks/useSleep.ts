@@ -27,6 +27,21 @@ export function useSleepDays(limit = 90): SleepDay[] | undefined {
   )
 }
 
+/**
+ * Returns the most recent SleepDay on record, or null when the table is empty.
+ *
+ * Why "latest" rather than "today": a GDPR export is always historical — its
+ * newest row is at best yesterday, so querying today's date would never match.
+ * `null` (empty table) is kept distinct from `undefined` (query in flight) so
+ * callers can tell "no data" apart from "still loading".
+ */
+export function useLatestSleepDay(): SleepDay | null | undefined {
+  return useLiveQuery(async () => {
+    const row = await db.sleepDays.orderBy('day').reverse().first()
+    return row ?? null
+  }, [])
+}
+
 /** Returns the SleepDay summary for a single calendar date. */
 export function useSleepDay(date: string): SleepDay | undefined {
   return useLiveQuery(
@@ -46,8 +61,5 @@ export function useSleepDay(date: string): SleepDay | undefined {
  * that need all sessions for a night should query `.toArray()` instead.
  */
 export function useSleepSession(date: string): SleepSession | undefined {
-  return useLiveQuery(
-    () => db.sleepSessions.where('day').equals(date).first(),
-    [date],
-  )
+  return useLiveQuery(() => db.sleepSessions.where('day').equals(date).first(), [date])
 }

@@ -27,6 +27,17 @@ export function useReadinessDays(limit = 90): ReadinessDay[] | undefined {
   )
 }
 
+/**
+ * Returns the most recent ReadinessDay on record, or null when the table is
+ * empty. See useLatestSleepDay for the "latest vs today" rationale.
+ */
+export function useLatestReadinessDay(): ReadinessDay | null | undefined {
+  return useLiveQuery(async () => {
+    const row = await db.readinessDays.orderBy('day').reverse().first()
+    return row ?? null
+  }, [])
+}
+
 /** Returns the ReadinessDay summary for a single calendar date. */
 export function useReadinessDay(date: string): ReadinessDay | undefined {
   return useLiveQuery(
@@ -45,8 +56,5 @@ export function useReadinessDay(date: string): ReadinessDay | undefined {
  * a different field set and Oura exposes it via a separate CSV export.
  */
 export function useResilienceDay(date: string): ResilienceDay | undefined {
-  return useLiveQuery(
-    () => db.resilienceDays.get(date),
-    [date],
-  )
+  return useLiveQuery(() => db.resilienceDays.get(date), [date])
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import i18n from 'i18next'
 import { useTheme } from '@/theme/useTheme'
@@ -32,6 +33,7 @@ export default function Settings() {
   const { t } = useTranslation('settings')
   const { theme, setTheme } = useTheme()
   const importStats = useImportStats()
+  const navigate = useNavigate()
   const [confirmClear, setConfirmClear] = useState(false)
   const [clearing, setClearing] = useState(false)
 
@@ -44,6 +46,9 @@ export default function Settings() {
     window.dispatchEvent(new CustomEvent('oura:eviction', { detail: 'no-zip' }))
     setClearing(false)
     setConfirmClear(false)
+    // The onboarding gate only replaces the Dashboard route, so send the user
+    // there — staying on a now-empty Settings page would be a dead end.
+    await navigate({ to: '/' })
   }
 
   const lastImportDate = importStats?.importedAt

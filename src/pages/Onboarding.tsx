@@ -190,10 +190,15 @@ export default function Onboarding() {
             <input
               ref={fileInputRef}
               id="zip-input"
+              data-testid="zip-input"
               type="file"
               accept=".zip"
               className="sr-only"
-              aria-label={t('importBtn')}
+              /* The visible button below is the interactive control; keep the
+                 hidden input out of the tab order and a11y tree so there aren't
+                 two controls named "Import ZIP". */
+              tabIndex={-1}
+              aria-hidden="true"
               onChange={handleFileChange}
             />
             <button

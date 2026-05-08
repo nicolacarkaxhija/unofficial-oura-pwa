@@ -6,11 +6,17 @@
 // Each domain module keeps its hooks co-located with its query logic;
 // this barrel exists solely for ergonomic imports in page components.
 
-export { useSleepDays, useSleepDay, useSleepSession } from './useSleep'
-export { useReadinessDays, useReadinessDay, useResilienceDay } from './useReadiness'
+export { useSleepDays, useSleepDay, useLatestSleepDay, useSleepSession } from './useSleep'
+export {
+  useReadinessDays,
+  useReadinessDay,
+  useLatestReadinessDay,
+  useResilienceDay,
+} from './useReadiness'
 export {
   useActivityDays,
   useActivityDay,
+  useLatestActivityDay,
   useWorkoutsForDay,
   useMeditationsForDay,
   useStressForDay,

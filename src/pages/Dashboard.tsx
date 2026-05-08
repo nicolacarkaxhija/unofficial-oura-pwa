@@ -1,20 +1,22 @@
-import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { ScoreRing, LoadingSkeleton } from '@/components/ui'
-import { useSleepDay, useReadinessDay, useActivityDay } from '@/db/hooks'
+import { useLatestSleepDay, useLatestReadinessDay, useLatestActivityDay } from '@/db/hooks'
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 //
-// Today's three score cards: sleep, readiness, activity.
+// Latest three score cards: sleep, readiness, activity.
 //
-// Why format(new Date(), 'yyyy-MM-dd') rather than toISOString().slice(0, 10)?
-//   toISOString() always returns UTC midnight. On a device at UTC-5, midnight UTC
-//   on Jan 2 corresponds to 7pm local time on Jan 1 — the "today" query would
-//   return yesterday's data. format() uses the device's local calendar date.
+// Why "latest day" rather than "today": the data source is a GDPR export,
+// which is always historical — its newest row is at best yesterday. A query
+// keyed on today's date would never match anything, so the dashboard shows
+// the most recent day each pillar has data for (the pillars can differ by a
+// day, e.g. an export taken mid-morning may have last night's sleep but not
+// yesterday's finalised activity).
 //
 // Loading state: any hook returning undefined means IndexedDB hasn't responded
 // yet. We show a skeleton grid to avoid layout shift when data arrives.
+// null means the table is empty — rendered as "—" cards rather than skeletons.
 
 const SCORE_COLORS = {
   sleep: '#60a5fa', // blue-400 — consistent with hypnogram's light-sleep colour
@@ -29,14 +31,20 @@ export default function Dashboard() {
   const { t: tActivity } = useTranslation('activity')
   const navigate = useNavigate()
 
-  // Use local calendar date so queries match the user's timezone
-  const today = format(new Date(), 'yyyy-MM-dd')
-
-  const sleepDay = useSleepDay(today)
-  const readinessDay = useReadinessDay(today)
-  const activityDay = useActivityDay(today)
+  const sleepDay = useLatestSleepDay()
+  const readinessDay = useLatestReadinessDay()
+  const activityDay = useLatestActivityDay()
 
   const loading = sleepDay === undefined || readinessDay === undefined || activityDay === undefined
+
+  // The most recent day any pillar has data for — shown under the cards so
+  // the user knows how fresh their export is.
+  const latestDay = loading
+    ? null
+    : ([sleepDay?.day, readinessDay?.day, activityDay?.day]
+        .filter((d): d is string => d !== undefined)
+        .sort()
+        .at(-1) ?? null)
 
   return (
     <div className="px-4 pt-8 pb-6">
@@ -58,11 +66,11 @@ export default function Dashboard() {
             type="button"
             className="text-left"
             onClick={() => void navigate({ to: '/sleep' })}
-            aria-label={`${tSleep('title')} — ${tSleep('score')}: ${sleepDay.score !== null ? String(sleepDay.score) : '—'}`}
+            aria-label={`${tSleep('title')} — ${tSleep('score')}: ${sleepDay?.score != null ? String(sleepDay.score) : '—'}`}
           >
             <DashboardCard
               title={tSleep('title')}
-              score={sleepDay.score}
+              score={sleepDay?.score ?? null}
               color="blue"
               hexColor={SCORE_COLORS.sleep}
               subtitle={tSleep('score')}
@@ -74,11 +82,11 @@ export default function Dashboard() {
             type="button"
             className="text-left"
             onClick={() => void navigate({ to: '/readiness' })}
-            aria-label={`${tReadiness('title')} — ${tReadiness('score')}: ${readinessDay.score !== null ? String(readinessDay.score) : '—'}`}
+            aria-label={`${tReadiness('title')} — ${tReadiness('score')}: ${readinessDay?.score != null ? String(readinessDay.score) : '—'}`}
           >
             <DashboardCard
               title={tReadiness('title')}
-              score={readinessDay.score}
+              score={readinessDay?.score ?? null}
               color="indigo"
               hexColor={SCORE_COLORS.readiness}
               subtitle={tReadiness('score')}
@@ -90,11 +98,11 @@ export default function Dashboard() {
             type="button"
             className="text-left"
             onClick={() => void navigate({ to: '/activity' })}
-            aria-label={`${tActivity('title')} — ${tActivity('score')}: ${activityDay.score !== null ? String(activityDay.score) : '—'}`}
+            aria-label={`${tActivity('title')} — ${tActivity('score')}: ${activityDay?.score != null ? String(activityDay.score) : '—'}`}
           >
             <DashboardCard
               title={tActivity('title')}
-              score={activityDay.score}
+              score={activityDay?.score ?? null}
               color="emerald"
               hexColor={SCORE_COLORS.activity}
               subtitle={tActivity('score')}
@@ -103,14 +111,18 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Today's date displayed beneath the cards for orientation */}
+      {/* Date of the data being shown — tells the user how fresh their export is.
+          T00:00:00 suffix keeps the Date in local time (a bare YYYY-MM-DD parses as UTC). */}
       <p className="mt-6 text-center text-xs text-slate-400 dark:text-slate-500">
-        {new Date().toLocaleDateString(undefined, {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        })}
+        {(latestDay ? new Date(`${latestDay}T00:00:00`) : new Date()).toLocaleDateString(
+          undefined,
+          {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          },
+        )}
       </p>
     </div>
   )

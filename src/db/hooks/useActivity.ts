@@ -27,6 +27,17 @@ export function useActivityDays(limit = 90): ActivityDay[] | undefined {
   )
 }
 
+/**
+ * Returns the most recent ActivityDay on record, or null when the table is
+ * empty. See useLatestSleepDay for the "latest vs today" rationale.
+ */
+export function useLatestActivityDay(): ActivityDay | null | undefined {
+  return useLiveQuery(async () => {
+    const row = await db.activityDays.orderBy('day').reverse().first()
+    return row ?? null
+  }, [])
+}
+
 /** Returns the ActivityDay summary for a single calendar date. */
 export function useActivityDay(date: string): ActivityDay | undefined {
   return useLiveQuery(
@@ -45,10 +56,7 @@ export function useActivityDay(date: string): ActivityDay | undefined {
  * returned in insertion order — callers sort if a specific order is needed.
  */
 export function useWorkoutsForDay(date: string): Workout[] | undefined {
-  return useLiveQuery(
-    () => db.workouts.where('day').equals(date).toArray(),
-    [date],
-  )
+  return useLiveQuery(() => db.workouts.where('day').equals(date).toArray(), [date])
 }
 
 /**
@@ -57,10 +65,7 @@ export function useWorkoutsForDay(date: string): Workout[] | undefined {
  * Uses the `day` index (`meditations: 'id, day'`) for efficient lookup.
  */
 export function useMeditationsForDay(date: string): Meditation[] | undefined {
-  return useLiveQuery(
-    () => db.meditations.where('day').equals(date).toArray(),
-    [date],
-  )
+  return useLiveQuery(() => db.meditations.where('day').equals(date).toArray(), [date])
 }
 
 /**
@@ -74,8 +79,5 @@ export function useMeditationsForDay(date: string): Meditation[] | undefined {
  * rendering without requiring a secondary JS sort.
  */
 export function useStressForDay(date: string): StressPoint[] | undefined {
-  return useLiveQuery(
-    () => db.stressPoints.where('day').equals(date).sortBy('timestamp'),
-    [date],
-  )
+  return useLiveQuery(() => db.stressPoints.where('day').equals(date).sortBy('timestamp'), [date])
 }

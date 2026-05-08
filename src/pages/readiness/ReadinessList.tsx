@@ -38,7 +38,8 @@ function TempBadge({ dev }: { dev: number | null }) {
           : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
       }`}
     >
-      {sign}{dev.toFixed(1)}°C
+      {sign}
+      {dev.toFixed(1)}°C
     </span>
   )
 }
@@ -51,9 +52,7 @@ export default function ReadinessList() {
 
   return (
     <div className="px-4 pt-8 pb-6">
-      <h1 className="mb-4 text-2xl font-bold text-slate-900 dark:text-white">
-        {t('title')}
-      </h1>
+      <h1 className="mb-4 text-2xl font-bold text-slate-900 dark:text-white">{t('title')}</h1>
 
       {days === undefined ? (
         <div className="space-y-3">
@@ -86,11 +85,12 @@ export default function ReadinessList() {
                 <Link
                   to="/readiness/$date"
                   params={{ date: day.day }}
+                  data-testid="readiness-day-item"
                   className="flex items-center gap-4 rounded-xl bg-white px-4 py-3 shadow-sm transition-colors hover:bg-slate-50 active:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 dark:active:bg-slate-600"
                 >
                   <ScoreRing score={day.score} size={48} color="indigo" />
 
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
                       {formatDate(day.day)}
                     </p>

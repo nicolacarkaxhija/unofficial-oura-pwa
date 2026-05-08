@@ -63,8 +63,11 @@ const sleepRoute = createRoute({
 })
 
 const sleepDetailRoute = createRoute({
-  getParentRoute: () => sleepRoute,
-  path: '$date',
+  // Sibling of the list route (not a child): the list components render no
+  // <Outlet/>, so nesting the detail under them would silently render the list
+  // for /sleep/YYYY-MM-DD URLs. Full-path sibling routes avoid that trap.
+  getParentRoute: () => rootRoute,
+  path: '/sleep/$date',
   parseParams: parseDateParam,
   component: SleepDetail,
 })
@@ -78,8 +81,11 @@ const readinessRoute = createRoute({
 })
 
 const readinessDetailRoute = createRoute({
-  getParentRoute: () => readinessRoute,
-  path: '$date',
+  // Sibling of the list route (not a child): the list components render no
+  // <Outlet/>, so nesting the detail under them would silently render the list
+  // for /readiness/YYYY-MM-DD URLs. Full-path sibling routes avoid that trap.
+  getParentRoute: () => rootRoute,
+  path: '/readiness/$date',
   parseParams: parseDateParam,
   component: ReadinessDetail,
 })
@@ -93,8 +99,11 @@ const activityRoute = createRoute({
 })
 
 const activityDetailRoute = createRoute({
-  getParentRoute: () => activityRoute,
-  path: '$date',
+  // Sibling of the list route (not a child): the list components render no
+  // <Outlet/>, so nesting the detail under them would silently render the list
+  // for /activity/YYYY-MM-DD URLs. Full-path sibling routes avoid that trap.
+  getParentRoute: () => rootRoute,
+  path: '/activity/$date',
   parseParams: parseDateParam,
   component: ActivityDetail,
 })
@@ -111,9 +120,12 @@ const settingsRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   dashboardRoute,
-  sleepRoute.addChildren([sleepDetailRoute]),
-  readinessRoute.addChildren([readinessDetailRoute]),
-  activityRoute.addChildren([activityDetailRoute]),
+  sleepRoute,
+  sleepDetailRoute,
+  readinessRoute,
+  readinessDetailRoute,
+  activityRoute,
+  activityDetailRoute,
   settingsRoute,
 ])
 

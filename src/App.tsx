@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Outlet } from '@tanstack/react-router'
+import { Outlet, useRouterState } from '@tanstack/react-router'
 import { BottomNav } from '@/components/ui'
 import { useHasData } from '@/db/hooks'
 import { db } from '@/db/client'
@@ -68,14 +68,17 @@ async function checkAndRepair(): Promise<void> {
 export default function App() {
   useEvictionCheck()
   const hasData = useHasData()
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
 
   // Still querying IndexedDB — render nothing (avoids flash of wrong state)
   if (hasData === undefined) {
     return null
   }
 
-  // No data imported yet — show onboarding + import flow
-  if (!hasData) {
+  // No data imported yet — show onboarding, but only in place of the Dashboard.
+  // Other routes (Settings especially — theme/language are useful pre-import)
+  // stay reachable; list pages simply render their own empty states.
+  if (!hasData && pathname === '/') {
     return <Onboarding />
   }
 
