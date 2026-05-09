@@ -131,7 +131,7 @@ export const ReadinessDayRowSchema = z.object({
 export const ResilienceDayRowSchema = z.object({
   day: z.string(),
   id: z.string(),
-  level: z.string(),
+  level: z.enum(['exceptional', 'strong', 'solid', 'adequate', 'weak']),
   contributors: nullableJsonObject,
 })
 

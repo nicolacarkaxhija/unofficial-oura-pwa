@@ -63,10 +63,9 @@ export default function ReadinessDetail() {
     sleep_balance: contributors.sleep_balance,
   }
 
-  // noUncheckedIndexedAccess makes Record indexing return `string | undefined`;
-  // resolve to a guaranteed string before use in a template literal.
-  const resilienceLevelClass = (level: string): string =>
-    RESILIENCE_COLORS[level] ?? RESILIENCE_COLORS.solid
+  // Level is always a ResilienceLevel union member, so the Record lookup is
+  // exhaustive — no undefined fallback needed.
+  const resilienceLevelClass = (level: ResilienceLevel): string => RESILIENCE_COLORS[level]
 
   const tempDev = day.temperatureDeviation
   const tempSign = tempDev !== null && tempDev >= 0 ? '+' : ''
