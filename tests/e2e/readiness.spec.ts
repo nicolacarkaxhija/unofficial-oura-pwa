@@ -17,7 +17,7 @@ let sharedContext: BrowserContext
 // workerInfo is not a Playwright fixture — parallelIndex lives on testInfo
 // (the second argument to beforeAll / test callbacks).
 test.beforeAll(async ({ browser }, testInfo) => {
-  const tmpDir = join(tmpdir(), `oura-readiness-${testInfo.parallelIndex}`)
+  const tmpDir = join(tmpdir(), `oura-readiness-${String(testInfo.parallelIndex)}`)
   const zipPath = await createFixtureZipFile(tmpDir)
 
   sharedContext = await browser.newContext()

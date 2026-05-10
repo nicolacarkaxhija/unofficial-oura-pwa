@@ -18,7 +18,7 @@ import { createFixtureZipFile } from './helpers/fixtureZip'
 
 // Workers run in parallel; each gets a unique sub-dir based on its index to
 // avoid file-system races when writing the fixture ZIP.
-const tmpDir = (workerIndex: number) => join(tmpdir(), `oura-e2e-${workerIndex}`)
+const tmpDir = (workerIndex: number) => join(tmpdir(), `oura-e2e-${String(workerIndex)}`)
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
@@ -75,9 +75,7 @@ test('uploading fixture ZIP shows progress bar then dashboard with scores', asyn
   await expect(page.getByText('Activity Score')).toBeVisible()
 })
 
-test('after import, refresh page persists data (no onboarding)', async ({
-  page,
-}, testInfo) => {
+test('after import, refresh page persists data (no onboarding)', async ({ page }, testInfo) => {
   const zipPath = await createFixtureZipFile(tmpDir(testInfo.parallelIndex))
 
   await page.goto('/')
@@ -94,9 +92,7 @@ test('after import, refresh page persists data (no onboarding)', async ({
   await expect(page.getByText('Sleep Score')).toBeVisible()
 })
 
-test('clearing all data in Settings causes onboarding to reappear', async ({
-  page,
-}, testInfo) => {
+test('clearing all data in Settings causes onboarding to reappear', async ({ page }, testInfo) => {
   const zipPath = await createFixtureZipFile(tmpDir(testInfo.parallelIndex))
 
   // Seed data first.

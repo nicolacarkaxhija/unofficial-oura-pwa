@@ -23,7 +23,7 @@ let zipPath: string
 // workerInfo is not a Playwright fixture — parallelIndex lives on testInfo
 // (the second argument to beforeAll / test callbacks).
 test.beforeAll(async ({ browser }, testInfo) => {
-  const tmpDir = join(tmpdir(), `oura-sleep-${testInfo.parallelIndex}`)
+  const tmpDir = join(tmpdir(), `oura-sleep-${String(testInfo.parallelIndex)}`)
   zipPath = await createFixtureZipFile(tmpDir)
 
   // Create a single persistent context so IndexedDB survives across tests.

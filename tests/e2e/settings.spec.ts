@@ -74,7 +74,7 @@ test('clear all data → confirmation prompt → data cleared → onboarding sho
   browser,
 }, testInfo) => {
   // This test needs seeded data so "Clear all data" has something to clear.
-  const tmpDir = join(tmpdir(), `oura-settings-clear-${testInfo.parallelIndex}`)
+  const tmpDir = join(tmpdir(), `oura-settings-clear-${String(testInfo.parallelIndex)}`)
   const zipPath = await createFixtureZipFile(tmpDir)
 
   const ctx = await browser.newContext()
