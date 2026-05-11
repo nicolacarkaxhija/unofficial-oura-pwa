@@ -78,10 +78,7 @@ function parseCsv(text: string): Record<string, string>[] {
  *   Older exports used plain names (`sleep.csv`); newer exports prefix with
  *   `Oura_` (`Oura_sleep.csv`). We try both to support all export vintages.
  */
-async function extractCsv(
-  zip: JSZip,
-  baseName: string,
-): Promise<string | null> {
+async function extractCsv(zip: JSZip, baseName: string): Promise<string | null> {
   const candidates = [baseName, `Oura_${baseName}`]
   for (const name of candidates) {
     // JSZip stores files by their full path inside the archive; search all
@@ -112,12 +109,7 @@ function transformSleepDays(rows: Record<string, string>[]): SleepDay[] {
     if (r.optimal_bedtime) {
       try {
         const parsed: unknown = JSON.parse(r.optimal_bedtime)
-        if (
-          parsed &&
-          typeof parsed === 'object' &&
-          'start' in parsed &&
-          'end' in parsed
-        ) {
+        if (parsed && typeof parsed === 'object' && 'start' in parsed && 'end' in parsed) {
           optimalBedtime = parsed as { start: string; end: string }
         }
       } catch {
@@ -130,9 +122,10 @@ function transformSleepDays(rows: Record<string, string>[]): SleepDay[] {
         day: r.day,
         id: r.id,
         score: r.score,
-        // Cast through unknown: the Zod schema parses contributors as
-        // Record<string,number|null> but runtime shape matches SleepContributors.
-        contributors: (r.contributors as unknown as SleepDay['contributors']) ?? {
+        // Zod parses contributors as Record<string,number|null>|null; cast to the
+        // typed interface. The null-coalesce happens before the cast so it is
+        // visible to the type checker (casting first hides the nullability).
+        contributors: (r.contributors ?? {
           deep_sleep: null,
           efficiency: null,
           latency: null,
@@ -140,7 +133,7 @@ function transformSleepDays(rows: Record<string, string>[]): SleepDay[] {
           restfulness: null,
           timing: null,
           total_sleep: null,
-        },
+        }) as unknown as SleepDay['contributors'],
         optimalBedtime,
         status: r.status ?? null,
         spo2Percentage: r.spo2_percentage,
@@ -150,9 +143,7 @@ function transformSleepDays(rows: Record<string, string>[]): SleepDay[] {
   })
 }
 
-function transformSleepSessions(
-  rows: Record<string, string>[],
-): SleepSession[] {
+function transformSleepSessions(rows: Record<string, string>[]): SleepSession[] {
   return rows.flatMap((row) => {
     const result = SleepSessionRowSchema.safeParse(row)
     if (!result.success) return []
@@ -186,9 +177,7 @@ function transformSleepSessions(
   })
 }
 
-function transformReadinessDays(
-  rows: Record<string, string>[],
-): ReadinessDay[] {
+function transformReadinessDays(rows: Record<string, string>[]): ReadinessDay[] {
   return rows.flatMap((row) => {
     const result = ReadinessDayRowSchema.safeParse(row)
     if (!result.success) return []
@@ -203,9 +192,9 @@ function transformReadinessDays(
         stressHigh: r.stress_high,
         recoveryHigh: r.recovery_high,
         daySummary: r.day_summary ?? null,
-        // Cast through unknown: the Zod schema parses contributors as
-        // Record<string,number|null> but runtime shape matches ReadinessContributors.
-        contributors: (r.contributors as unknown as ReadinessDay['contributors']) ?? {
+        // Zod parses contributors as Record<string,number|null>|null; null-coalesce
+        // before casting so the fallback is type-checker-visible.
+        contributors: (r.contributors ?? {
           activity_balance: null,
           body_temperature: null,
           hrv_balance: null,
@@ -214,15 +203,13 @@ function transformReadinessDays(
           recovery_index: null,
           resting_heart_rate: null,
           sleep_balance: null,
-        },
+        }) as unknown as ReadinessDay['contributors'],
       },
     ]
   })
 }
 
-function transformResilienceDays(
-  rows: Record<string, string>[],
-): ResilienceDay[] {
+function transformResilienceDays(rows: Record<string, string>[]): ResilienceDay[] {
   // ResilienceDayRowSchema has `contributors` as a JSON object containing
   // { sleep_recovery, daytime_recovery, stress } — we destructure those out
   // and map to the typed ResilienceDay fields.
@@ -230,7 +217,8 @@ function transformResilienceDays(
     const result = ResilienceDayRowSchema.safeParse(row)
     if (!result.success) return []
     const r = result.data
-    const c = r.contributors as Record<string, number | null> | null
+    // r.contributors is already Record<string, number | null> | null from the schema
+    const c = r.contributors
     return [
       {
         day: r.day,
@@ -269,7 +257,9 @@ function transformActivityDays(rows: Record<string, string>[]): ActivityDay[] {
         targetMeters: r.target_meters,
         averageMetMinutes: r.average_met_minutes,
         metersToTarget: r.meters_to_target,
-        contributors: (r.contributors as ActivityDay['contributors']) ?? {},
+        // r.contributors is Record<string, number | null> | null; default to {}
+        // when null (ActivityDay expects Record<string, number | null>).
+        contributors: r.contributors ?? {},
         class5Min: r.class_5_min,
         met: r.met,
       },
@@ -317,9 +307,7 @@ function transformMeditations(rows: Record<string, string>[]): Meditation[] {
   })
 }
 
-function transformStressPoints(
-  rows: Record<string, string>[],
-): Omit<StressPoint, 'id'>[] {
+function transformStressPoints(rows: Record<string, string>[]): Omit<StressPoint, 'id'>[] {
   return rows.flatMap((row) => {
     const result = StressRowSchema.safeParse(row)
     if (!result.success) return []
@@ -444,11 +432,7 @@ async function runImport(blob: Blob): Promise<void> {
         // StressPoint uses auto-increment PK — bulkPut with no id causes Dexie
         // to assign new IDs each time, so we clear first then add to avoid
         // accumulating duplicates across re-imports.
-        db.stressPoints
-          .clear()
-          .then(() =>
-            db.stressPoints.bulkAdd(stressPoints as StressPoint[]),
-          ),
+        db.stressPoints.clear().then(() => db.stressPoints.bulkAdd(stressPoints as StressPoint[])),
       ])
 
       // Store the original ZIP blob for Safari eviction recovery.
@@ -484,7 +468,7 @@ async function runImport(blob: Blob): Promise<void> {
 
 self.onmessage = (event: MessageEvent<WorkerInMessage>) => {
   const msg = event.data
-  if (msg.type !== 'start') return
+  // WorkerInMessage only has type 'start', so no dispatch needed — go directly.
 
   runImport(msg.payload.blob).catch((e: unknown) => {
     // Catch and report errors rather than letting them propagate unhandled.

@@ -1,4 +1,6 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { ThemeContext } from './ThemeContextDef'
+import type { Theme } from './ThemeContextDef'
 
 // ─── Dark Mode Strategy ────────────────────────────────────────────────────────
 //
@@ -11,16 +13,13 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 //
 // We do NOT use a CSS media query as the sole mechanism because users expect
 // to be able to override the system preference in Settings.
+//
+// Context creation and the useTheme hook live in separate .ts files so this
+// .tsx only exports a single component (ThemeProvider), keeping react-refresh
+// fast-refresh working correctly.
 
-export type Theme = 'system' | 'light' | 'dark'
-
-interface ThemeContextValue {
-  theme: Theme
-  setTheme: (theme: Theme) => void
-  resolvedTheme: 'light' | 'dark' // the actual applied theme after resolving 'system'
-}
-
-const ThemeContext = createContext<ThemeContextValue | null>(null)
+// Re-export Theme type for consumers that import it from this module path
+export type { Theme } from './ThemeContextDef'
 
 function getSystemTheme(): 'light' | 'dark' {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
@@ -68,10 +67,4 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       {children}
     </ThemeContext.Provider>
   )
-}
-
-export function useTheme(): ThemeContextValue {
-  const ctx = useContext(ThemeContext)
-  if (!ctx) throw new Error('useTheme must be used inside ThemeProvider')
-  return ctx
 }
