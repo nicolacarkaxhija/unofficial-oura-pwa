@@ -1,7 +1,7 @@
 import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
-import { ScoreCard, ScoreRing, LoadingSkeleton } from '@/components/ui'
+import { ScoreRing, LoadingSkeleton } from '@/components/ui'
 import { useSleepDay, useReadinessDay, useActivityDay } from '@/db/hooks'
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
@@ -58,11 +58,11 @@ export default function Dashboard() {
             type="button"
             className="text-left"
             onClick={() => void navigate({ to: '/sleep' })}
-            aria-label={`${tSleep('title')} — ${tSleep('score')}: ${sleepDay?.score ?? '—'}`}
+            aria-label={`${tSleep('title')} — ${tSleep('score')}: ${sleepDay.score !== null ? String(sleepDay.score) : '—'}`}
           >
             <DashboardCard
               title={tSleep('title')}
-              score={sleepDay?.score ?? null}
+              score={sleepDay.score}
               color="blue"
               hexColor={SCORE_COLORS.sleep}
               subtitle={tSleep('score')}
@@ -74,11 +74,11 @@ export default function Dashboard() {
             type="button"
             className="text-left"
             onClick={() => void navigate({ to: '/readiness' })}
-            aria-label={`${tReadiness('title')} — ${tReadiness('score')}: ${readinessDay?.score ?? '—'}`}
+            aria-label={`${tReadiness('title')} — ${tReadiness('score')}: ${readinessDay.score !== null ? String(readinessDay.score) : '—'}`}
           >
             <DashboardCard
               title={tReadiness('title')}
-              score={readinessDay?.score ?? null}
+              score={readinessDay.score}
               color="indigo"
               hexColor={SCORE_COLORS.readiness}
               subtitle={tReadiness('score')}
@@ -90,11 +90,11 @@ export default function Dashboard() {
             type="button"
             className="text-left"
             onClick={() => void navigate({ to: '/activity' })}
-            aria-label={`${tActivity('title')} — ${tActivity('score')}: ${activityDay?.score ?? '—'}`}
+            aria-label={`${tActivity('title')} — ${tActivity('score')}: ${activityDay.score !== null ? String(activityDay.score) : '—'}`}
           >
             <DashboardCard
               title={tActivity('title')}
-              score={activityDay?.score ?? null}
+              score={activityDay.score}
               color="emerald"
               hexColor={SCORE_COLORS.activity}
               subtitle={tActivity('score')}

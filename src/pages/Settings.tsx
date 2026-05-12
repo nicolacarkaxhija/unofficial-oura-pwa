@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import i18n from 'i18next'
-import { useTheme, type Theme } from '@/theme/ThemeContext'
+import { useTheme } from '@/theme/useTheme'
+import type { Theme } from '@/theme/ThemeContext'
 import { useImportStats } from '@/db/hooks'
 import { db } from '@/db/client'
 import { format } from 'date-fns'
@@ -88,7 +89,9 @@ export default function Settings() {
         {!confirmClear ? (
           <button
             type="button"
-            onClick={() => setConfirmClear(true)}
+            onClick={() => {
+              setConfirmClear(true)
+            }}
             className="mt-3 w-full rounded-xl border border-red-300 px-4 py-3 font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
           >
             {t('data.clearAll')}
@@ -99,7 +102,9 @@ export default function Settings() {
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => setConfirmClear(false)}
+                onClick={() => {
+                  setConfirmClear(false)
+                }}
                 className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 dark:border-slate-600 dark:text-slate-300"
               >
                 Cancel
@@ -125,7 +130,9 @@ export default function Settings() {
               <button
                 key={value}
                 type="button"
-                onClick={() => setTheme(value)}
+                onClick={() => {
+                  setTheme(value)
+                }}
                 className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   theme === value
                     ? 'bg-emerald-500 text-white'
@@ -173,7 +180,7 @@ export default function Settings() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-800">
-      <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+      <h2 className="mb-4 text-xs font-semibold tracking-wider text-slate-400 uppercase dark:text-slate-500">
         {title}
       </h2>
       {children}

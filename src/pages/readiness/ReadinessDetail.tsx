@@ -30,30 +30,22 @@ const RESILIENCE_COLORS: Record<ResilienceLevel, string> = {
 
 export default function ReadinessDetail() {
   const { t } = useTranslation('readiness')
-  const { t: tCommon } = useTranslation('common')
 
   const { date } = useParams({ from: '/readiness/$date' })
 
   const day = useReadinessDay(date)
   const resilience = useResilienceDay(date)
 
-  const loading = day === undefined
-
-  if (loading) {
+  // day is ReadinessDay | undefined.
+  // useLiveQuery returns undefined while loading AND when the record is not found.
+  // We treat both states the same: show a skeleton until we know it's not just
+  // "in-flight", then fall through to render the day data.
+  if (!day) {
     return (
-      <div className="px-4 pt-8 pb-6 space-y-4">
+      <div className="space-y-4 px-4 pt-8 pb-6">
         <LoadingSkeleton className="h-8 w-48 rounded-lg" />
         <LoadingSkeleton className="h-64 w-full rounded-2xl" />
         <LoadingSkeleton className="h-48 w-full rounded-2xl" />
-      </div>
-    )
-  }
-
-  if (!day) {
-    return (
-      <div className="px-4 pt-8 pb-6">
-        <BackLink />
-        <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">{tCommon('noData')}</p>
       </div>
     )
   }
@@ -71,13 +63,18 @@ export default function ReadinessDetail() {
     sleep_balance: contributors.sleep_balance,
   }
 
+  // noUncheckedIndexedAccess makes Record indexing return `string | undefined`;
+  // resolve to a guaranteed string before use in a template literal.
+  const resilienceLevelClass = (level: string): string =>
+    RESILIENCE_COLORS[level] ?? RESILIENCE_COLORS.solid
+
   const tempDev = day.temperatureDeviation
   const tempSign = tempDev !== null && tempDev >= 0 ? '+' : ''
   const tempIsHigh = tempDev !== null && tempDev > 0.5
   const tempIsLow = tempDev !== null && tempDev < -0.5
 
   return (
-    <div className="px-4 pt-8 pb-6 space-y-6">
+    <div className="space-y-6 px-4 pt-8 pb-6">
       <BackLink />
 
       {/* Header: date + score ring */}
@@ -116,7 +113,7 @@ export default function ReadinessDetail() {
       {/* Temperature deviation */}
       {tempDev !== null && (
         <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-800">
-          <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+          <p className="mb-1 text-xs text-slate-500 dark:text-slate-400">
             {t('temperatureDeviation')}
           </p>
           <p
@@ -128,7 +125,8 @@ export default function ReadinessDetail() {
                   : 'text-slate-900 dark:text-white'
             }`}
           >
-            {tempSign}{tempDev.toFixed(2)}°C
+            {tempSign}
+            {tempDev.toFixed(2)}°C
           </p>
           <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
             {/* Trend deviation gives a multi-day perspective */}
@@ -145,9 +143,7 @@ export default function ReadinessDetail() {
             {t('resilience.title')}
           </p>
           <span
-            className={`inline-block rounded-full px-3 py-1 text-sm font-semibold ${
-              RESILIENCE_COLORS[resilience.level] ?? RESILIENCE_COLORS.solid
-            }`}
+            className={`inline-block rounded-full px-3 py-1 text-sm font-semibold ${resilienceLevelClass(resilience.level)}`}
           >
             {t(`resilience.${resilience.level}`)}
           </span>
@@ -191,22 +187,20 @@ export default function ReadinessDetail() {
           {t('contributors.title')}
         </h2>
         <div className="space-y-3">
-          {([
-            [t('contributors.activityBalance'), contributors.activity_balance],
-            [t('contributors.bodyTemperature'), contributors.body_temperature],
-            [t('contributors.hrvBalance'), contributors.hrv_balance],
-            [t('contributors.previousDayActivity'), contributors.previous_day_activity],
-            [t('contributors.previousNight'), contributors.previous_night],
-            [t('contributors.recoveryIndex'), contributors.recovery_index],
-            [t('contributors.restingHeartRate'), contributors.resting_heart_rate],
-            [t('contributors.sleepBalance'), contributors.sleep_balance],
-          ] as [string, number | null][]).map(([label, value]) => (
+          {(
+            [
+              [t('contributors.activityBalance'), contributors.activity_balance],
+              [t('contributors.bodyTemperature'), contributors.body_temperature],
+              [t('contributors.hrvBalance'), contributors.hrv_balance],
+              [t('contributors.previousDayActivity'), contributors.previous_day_activity],
+              [t('contributors.previousNight'), contributors.previous_night],
+              [t('contributors.recoveryIndex'), contributors.recovery_index],
+              [t('contributors.restingHeartRate'), contributors.resting_heart_rate],
+              [t('contributors.sleepBalance'), contributors.sleep_balance],
+            ] as [string, number | null][]
+          ).map(([label, value]) => (
             <div key={label} data-testid="contributor-item">
-              <ContributorBar
-                label={label}
-                value={value}
-                optimal={(value ?? 0) >= 70}
-              />
+              <ContributorBar label={label} value={value} optimal={(value ?? 0) >= 70} />
             </div>
           ))}
         </div>

@@ -38,7 +38,7 @@ function formatDuration(seconds: number | null): string {
   const totalMinutes = Math.round(seconds / 60)
   const h = Math.floor(totalMinutes / 60)
   const m = totalMinutes % 60
-  return `${h}h ${m.toString().padStart(2, '0')}m`
+  return `${h.toString()}h ${m.toString().padStart(2, '0')}m`
 }
 
 function formatTime(iso: string | null): string {
@@ -52,7 +52,6 @@ function formatTime(iso: string | null): string {
 
 export default function SleepDetail() {
   const { t } = useTranslation('sleep')
-  const { t: tCommon } = useTranslation('common')
 
   // TanStack Router already validated this param via parseDateParam in router.tsx
   const { date } = useParams({ from: '/sleep/$date' })
@@ -60,12 +59,13 @@ export default function SleepDetail() {
   const day = useSleepDay(date)
   const session = useSleepSession(date)
 
-  // Both hooks return undefined while loading
-  const loading = day === undefined || session === undefined
-
-  if (loading) {
+  // useLiveQuery returns undefined while in-flight and the resolved value after.
+  // For day: undefined → loading or not-found; SleepDay → found.
+  // For session: undefined → loading or not-found; SleepSession → found.
+  // We show a skeleton while either hook is still loading.
+  if (!day) {
     return (
-      <div className="px-4 pt-8 pb-6 space-y-4">
+      <div className="space-y-4 px-4 pt-8 pb-6">
         <LoadingSkeleton className="h-8 w-48 rounded-lg" />
         <LoadingSkeleton className="h-48 w-full rounded-2xl" />
         <LoadingSkeleton className="h-48 w-full rounded-2xl" />
@@ -74,23 +74,14 @@ export default function SleepDetail() {
     )
   }
 
-  // Day record missing means this date was never imported
-  if (!day) {
-    return (
-      <div className="px-4 pt-8 pb-6">
-        <BackLink />
-        <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">{tCommon('noData')}</p>
-      </div>
-    )
-  }
-
+  // day is SleepDay; session is SleepSession | undefined (may not exist for this date)
   const hrData = session ? buildTimeSeries(session.heartRate, session.bedtimeStart) : []
   const hrvData = session ? buildTimeSeries(session.hrv, session.bedtimeStart) : []
 
   const contributors = day.contributors
 
   return (
-    <div className="px-4 pt-8 pb-6 space-y-6">
+    <div className="space-y-6 px-4 pt-8 pb-6">
       {/* Back navigation */}
       <BackLink />
 
@@ -122,37 +113,33 @@ export default function SleepDetail() {
           />
           <StatItem
             label={t('detail.efficiency')}
-            value={session?.efficiency !== undefined && session.efficiency !== null
-              ? `${session.efficiency}%`
-              : '—'}
+            value={session?.efficiency != null ? `${session.efficiency.toString()}%` : '—'}
           />
           <StatItem
             label={t('detail.spo2')}
-            value={day.spo2Percentage !== null ? `${day.spo2Percentage}%` : '—'}
+            value={day.spo2Percentage !== null ? `${day.spo2Percentage.toString()}%` : '—'}
           />
           <StatItem
             label={t('detail.averageHrv')}
-            value={session?.averageHrv !== undefined && session.averageHrv !== null
-              ? `${session.averageHrv} ms`
-              : '—'}
+            value={session?.averageHrv != null ? `${session.averageHrv.toString()} ms` : '—'}
           />
           <StatItem
             label={t('detail.averageHr')}
-            value={session?.averageHeartRate !== undefined && session.averageHeartRate !== null
-              ? `${session.averageHeartRate} bpm`
-              : '—'}
+            value={
+              session?.averageHeartRate != null ? `${session.averageHeartRate.toString()} bpm` : '—'
+            }
           />
           <StatItem
             label={t('detail.lowestHr')}
-            value={session?.lowestHeartRate !== undefined && session.lowestHeartRate !== null
-              ? `${session.lowestHeartRate} bpm`
-              : '—'}
+            value={
+              session?.lowestHeartRate != null ? `${session.lowestHeartRate.toString()} bpm` : '—'
+            }
           />
           <StatItem
             label={t('detail.averageBreath')}
-            value={session?.averageBreath !== undefined && session.averageBreath !== null
-              ? `${session.averageBreath} brpm`
-              : '—'}
+            value={
+              session?.averageBreath != null ? `${session.averageBreath.toString()} brpm` : '—'
+            }
           />
         </dl>
       </section>

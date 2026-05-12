@@ -68,7 +68,9 @@ export default function Onboarding() {
       if (evt.detail === 'no-zip') setEvicted(true)
     }
     window.addEventListener('oura:eviction', handleEviction)
-    return () => window.removeEventListener('oura:eviction', handleEviction)
+    return () => {
+      window.removeEventListener('oura:eviction', handleEviction)
+    }
   }, [])
 
   // Terminate the worker if the component unmounts mid-import
@@ -91,10 +93,9 @@ export default function Onboarding() {
     // Spawn a new module worker for each import.
     // `import.meta.url` is resolved at bundle-build time by Vite's worker plugin,
     // giving us a code-split worker chunk that doesn't bloat the main bundle.
-    const worker = new Worker(
-      new URL('../workers/import.worker.ts', import.meta.url),
-      { type: 'module' },
-    )
+    const worker = new Worker(new URL('../workers/import.worker.ts', import.meta.url), {
+      type: 'module',
+    })
     workerRef.current = worker
 
     worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
@@ -108,7 +109,8 @@ export default function Onboarding() {
         // and replace this component automatically — no navigation needed.
         worker.terminate()
         workerRef.current = null
-      } else if (type === 'error') {
+      } else {
+        // type === 'error' — the only remaining variant in the union
         setError(payload?.message ?? 'Unknown error')
         setImporting(false)
         worker.terminate()
@@ -149,12 +151,8 @@ export default function Onboarding() {
         >
           O
         </div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-          {t('title')}
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          {t('subtitle')}
-        </p>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('title')}</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">{t('subtitle')}</p>
       </div>
 
       {/* Step-by-step import instructions */}
@@ -164,7 +162,10 @@ export default function Onboarding() {
         </h2>
         <ol className="space-y-3">
           {steps.map((key, idx) => (
-            <li key={key} className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300">
+            <li
+              key={key}
+              className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300"
+            >
               <span
                 className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
                 aria-hidden="true"
@@ -211,16 +212,14 @@ export default function Onboarding() {
           </p>
         )}
 
-        <p className="text-center text-xs text-slate-400 dark:text-slate-500">
-          {t('legal')}
-        </p>
+        <p className="text-center text-xs text-slate-400 dark:text-slate-500">{t('legal')}</p>
 
         {/* ── Dev-only shortcut ──────────────────────────────────────────
             Load 90 days of synthetic data without a real ZIP.
             Visible only in `npm run dev`; Vite removes this branch in builds. */}
         {DEV && (
           <div className="mt-6 border-t border-dashed border-slate-200 pt-6 dark:border-slate-700">
-            <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <p className="mb-2 text-center text-xs font-semibold tracking-wider text-slate-400 uppercase">
               Dev mode
             </p>
             <button

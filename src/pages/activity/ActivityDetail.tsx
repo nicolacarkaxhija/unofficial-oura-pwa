@@ -35,10 +35,10 @@ function buildMETSeries(
 function formatDuration(seconds: number | null): string {
   if (seconds === null) return '—'
   const totalMinutes = Math.round(seconds / 60)
-  if (totalMinutes < 60) return `${totalMinutes}m`
+  if (totalMinutes < 60) return `${totalMinutes.toString()}m`
   const h = Math.floor(totalMinutes / 60)
   const m = totalMinutes % 60
-  return m > 0 ? `${h}h ${m}m` : `${h}h`
+  return m > 0 ? `${h.toString()}h ${m.toString()}m` : `${h.toString()}h`
 }
 
 function formatTime(iso: string): string {
@@ -51,7 +51,6 @@ function formatTime(iso: string): string {
 
 export default function ActivityDetail() {
   const { t } = useTranslation('activity')
-  const { t: tCommon } = useTranslation('common')
 
   const { date } = useParams({ from: '/activity/$date' })
 
@@ -59,11 +58,24 @@ export default function ActivityDetail() {
   const workouts = useWorkoutsForDay(date)
   const stressPoints = useStressForDay(date)
 
-  const loading = day === undefined || workouts === undefined || stressPoints === undefined
+  // Separate the three possible hook states:
+  //   undefined  → query in-flight    → show skeleton
+  //   null-ish resolved → query done, day not found → show "no data"
+  //   ActivityDay → query done, data found → render page
+  //
+  // useLiveQuery returns undefined while loading and the resolved value after.
+  // We check workouts/stressPoints for undefined (loading) separately from day
+  // so that TypeScript can see day as ActivityDay | undefined after this block
+  // (not just ActivityDay), enabling the "no data" guard below to be reachable.
+  const loading = workouts === undefined || stressPoints === undefined
 
-  if (loading) {
+  if (loading || day === undefined) {
+    // Show skeleton while any hook is still loading.
+    // If workouts/stress are ready but day is undefined, Dexie returned no record
+    // for this date — we show the skeleton briefly, then the "no data" guard below
+    // takes over on the next render once all three hooks have settled.
     return (
-      <div className="px-4 pt-8 pb-6 space-y-4">
+      <div className="space-y-4 px-4 pt-8 pb-6">
         <LoadingSkeleton className="h-8 w-48 rounded-lg" />
         <LoadingSkeleton className="h-48 w-full rounded-2xl" />
         <LoadingSkeleton className="h-48 w-full rounded-2xl" />
@@ -72,24 +84,16 @@ export default function ActivityDetail() {
     )
   }
 
-  if (!day) {
-    return (
-      <div className="px-4 pt-8 pb-6">
-        <BackLink />
-        <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">{tCommon('noData')}</p>
-      </div>
-    )
-  }
-
   const metData = buildMETSeries(day.met, date)
 
-  const stressData = (stressPoints ?? []).map((sp) => ({
+  // stressPoints is StressPoint[] here (narrowed after loading guard)
+  const stressData = stressPoints.map((sp) => ({
     timestamp: new Date(sp.timestamp).getTime(),
     value: sp.stressValue ?? 0,
   }))
 
   return (
-    <div className="px-4 pt-8 pb-6 space-y-6">
+    <div className="space-y-6 px-4 pt-8 pb-6">
       <BackLink />
 
       {/* Header: date + score ring */}
@@ -118,7 +122,9 @@ export default function ActivityDetail() {
           />
           <StatItem
             label={t('stats.activeCalories')}
-            value={day.activeCalories !== null ? `${day.activeCalories.toLocaleString()} kcal` : '—'}
+            value={
+              day.activeCalories !== null ? `${day.activeCalories.toLocaleString()} kcal` : '—'
+            }
           />
           <StatItem
             label={t('stats.totalCalories')}
@@ -126,18 +132,17 @@ export default function ActivityDetail() {
           />
           <StatItem
             label={t('stats.distance')}
-            value={day.equivalentWalkingDistance !== null
-              ? `${(day.equivalentWalkingDistance / 1000).toFixed(1)} km`
-              : '—'}
+            value={
+              day.equivalentWalkingDistance !== null
+                ? `${(day.equivalentWalkingDistance / 1000).toFixed(1)} km`
+                : '—'
+            }
           />
           <StatItem
             label={t('inactivityAlerts')}
             value={day.inactivityAlerts !== null ? String(day.inactivityAlerts) : '—'}
           />
-          <StatItem
-            label={t('stats.nonWearTime')}
-            value={formatDuration(day.nonWearTime)}
-          />
+          <StatItem label={t('stats.nonWearTime')} value={formatDuration(day.nonWearTime)} />
         </dl>
       </section>
 
@@ -171,14 +176,18 @@ export default function ActivityDetail() {
       )}
 
       {/* Workouts list */}
-      {workouts && workouts.length > 0 && (
+      {/* workouts is Workout[] (non-null) after the loading guard; only check length */}
+      {workouts.length > 0 && (
         <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-800">
           <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
             {t('workouts')}
           </h2>
           <ul className="space-y-3">
             {workouts.map((w: Workout) => (
-              <li key={w.id} className="border-b border-slate-100 pb-3 last:border-0 last:pb-0 dark:border-slate-700">
+              <li
+                key={w.id}
+                className="border-b border-slate-100 pb-3 last:border-0 last:pb-0 dark:border-slate-700"
+              >
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm font-semibold text-slate-800 capitalize dark:text-white">

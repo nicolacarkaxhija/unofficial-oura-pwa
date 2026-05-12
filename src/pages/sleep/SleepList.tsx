@@ -14,14 +14,6 @@ import { useSleepDays } from '@/db/hooks'
 //   "452 minutes" requires mental arithmetic. We avoid importing date-fns'
 //   intervalToDuration here because the conversion is trivial.
 
-function formatSleepDuration(seconds: number | null): string {
-  if (seconds === null) return '—'
-  const totalMinutes = Math.round(seconds / 60)
-  const h = Math.floor(totalMinutes / 60)
-  const m = totalMinutes % 60
-  return `${h}h ${m.toString().padStart(2, '0')}m`
-}
-
 // Format "2024-06-15" → locale-appropriate short date for list rows
 function formatDate(day: string): string {
   return new Date(`${day}T00:00:00`).toLocaleDateString(undefined, {
@@ -43,9 +35,7 @@ export default function SleepList() {
 
   return (
     <div className="px-4 pt-8 pb-6">
-      <h1 className="mb-4 text-2xl font-bold text-slate-900 dark:text-white">
-        {t('title')}
-      </h1>
+      <h1 className="mb-4 text-2xl font-bold text-slate-900 dark:text-white">{t('title')}</h1>
 
       {days === undefined ? (
         // Loading state — skeleton chart + list rows
@@ -86,7 +76,7 @@ export default function SleepList() {
                   <ScoreRing score={day.score} size={48} color="blue" />
 
                   {/* Date and sleep duration */}
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
                       {formatDate(day.day)}
                     </p>
@@ -123,6 +113,3 @@ export default function SleepList() {
     </div>
   )
 }
-
-// Expose formatSleepDuration for SleepDetail to avoid duplication
-export { formatSleepDuration }
