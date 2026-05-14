@@ -51,7 +51,9 @@ import type {
  * We try JSON first (most structured), then the hyphen fallback.
  * Anything unrecognisable is stored as null — the UI handles null gracefully.
  */
-function parseOptimalBedtime(raw: string | null | undefined): { start: string; end: string } | null {
+function parseOptimalBedtime(
+  raw: string | null | undefined,
+): { start: string; end: string } | null {
   if (!raw) return null
   // Attempt 1: JSON object embedded in the cell (newer CSV exports)
   try {
@@ -65,11 +67,13 @@ function parseOptimalBedtime(raw: string | null | undefined): { start: string; e
       typeof (parsed as Record<string, unknown>).end === 'string'
     ) {
       const rec = parsed as Record<string, string>
-      // noUncheckedIndexedAccess: extract to variables with non-null assertions
-      // since the typeof guards above confirm both keys are strings.
-      return {
-        start: rec['start']!,
-        end: rec['end']!,
+      // noUncheckedIndexedAccess makes `rec[key]` return `string | undefined`,
+      // but the typeof guards above confirm both values are strings. We extract
+      // to local variables so the nullish guard narrows them without ! assertion.
+      const start = rec['start']
+      const end = rec['end']
+      if (start !== undefined && end !== undefined) {
+        return { start, end }
       }
     }
   } catch {
@@ -107,9 +111,7 @@ export function parseSleepDays(rows: unknown[]): SleepDay[] {
   for (let i = 0; i < rows.length; i++) {
     const result = SleepDayRowSchema.safeParse(rows[i])
     if (!result.success) {
-      console.warn(
-        `[parseSleepDays] Skipping row ${i}: ${result.error.message}`,
-      )
+      console.warn(`[parseSleepDays] Skipping row ${String(i)}: ${result.error.message}`)
       continue
     }
     const r = result.data
@@ -149,9 +151,7 @@ export function parseSleepSessions(rows: unknown[]): SleepSession[] {
   for (let i = 0; i < rows.length; i++) {
     const result = SleepSessionRowSchema.safeParse(rows[i])
     if (!result.success) {
-      console.warn(
-        `[parseSleepSessions] Skipping row ${i}: ${result.error.message}`,
-      )
+      console.warn(`[parseSleepSessions] Skipping row ${String(i)}: ${result.error.message}`)
       continue
     }
     const r = result.data
@@ -196,9 +196,7 @@ export function parseReadinessDays(rows: unknown[]): ReadinessDay[] {
   for (let i = 0; i < rows.length; i++) {
     const result = ReadinessDayRowSchema.safeParse(rows[i])
     if (!result.success) {
-      console.warn(
-        `[parseReadinessDays] Skipping row ${i}: ${result.error.message}`,
-      )
+      console.warn(`[parseReadinessDays] Skipping row ${String(i)}: ${result.error.message}`)
       continue
     }
     const r = result.data
@@ -238,9 +236,7 @@ export function parseResilienceDays(rows: unknown[]): ResilienceDay[] {
   for (let i = 0; i < rows.length; i++) {
     const result = ResilienceDayRowSchema.safeParse(rows[i])
     if (!result.success) {
-      console.warn(
-        `[parseResilienceDays] Skipping row ${i}: ${result.error.message}`,
-      )
+      console.warn(`[parseResilienceDays] Skipping row ${String(i)}: ${result.error.message}`)
       continue
     }
     const r = result.data
@@ -270,9 +266,7 @@ export function parseActivityDays(rows: unknown[]): ActivityDay[] {
   for (let i = 0; i < rows.length; i++) {
     const result = ActivityDayRowSchema.safeParse(rows[i])
     if (!result.success) {
-      console.warn(
-        `[parseActivityDays] Skipping row ${i}: ${result.error.message}`,
-      )
+      console.warn(`[parseActivityDays] Skipping row ${String(i)}: ${result.error.message}`)
       continue
     }
     const r = result.data
@@ -316,9 +310,7 @@ export function parseWorkouts(rows: unknown[]): Workout[] {
   for (let i = 0; i < rows.length; i++) {
     const result = WorkoutRowSchema.safeParse(rows[i])
     if (!result.success) {
-      console.warn(
-        `[parseWorkouts] Skipping row ${i}: ${result.error.message}`,
-      )
+      console.warn(`[parseWorkouts] Skipping row ${String(i)}: ${result.error.message}`)
       continue
     }
     const r = result.data
@@ -348,9 +340,7 @@ export function parseMeditations(rows: unknown[]): Meditation[] {
   for (let i = 0; i < rows.length; i++) {
     const result = MeditationRowSchema.safeParse(rows[i])
     if (!result.success) {
-      console.warn(
-        `[parseMeditations] Skipping row ${i}: ${result.error.message}`,
-      )
+      console.warn(`[parseMeditations] Skipping row ${String(i)}: ${result.error.message}`)
       continue
     }
     const r = result.data
@@ -376,9 +366,7 @@ export function parseStressPoints(rows: unknown[]): StressPoint[] {
   for (let i = 0; i < rows.length; i++) {
     const result = StressRowSchema.safeParse(rows[i])
     if (!result.success) {
-      console.warn(
-        `[parseStressPoints] Skipping row ${i}: ${result.error.message}`,
-      )
+      console.warn(`[parseStressPoints] Skipping row ${String(i)}: ${result.error.message}`)
       continue
     }
     const r = result.data

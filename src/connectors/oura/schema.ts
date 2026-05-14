@@ -38,8 +38,12 @@ const nullableBool = z.preprocess((v) => {
 // Returns null when the cell is empty or unparseable — never throws.
 const nullableNumberArray = z.preprocess((v) => {
   if (v === '' || v == null) return null
+  // After the null/empty guard, `v` is a non-empty CSV cell — always a string
+  // at runtime. Casting to string avoids no-base-to-string (String(unknown) can
+  // produce "[object Object]" for non-primitive values).
+  const raw = v as string
   try {
-    const parsed: unknown = JSON.parse(String(v))
+    const parsed: unknown = JSON.parse(raw)
     return Array.isArray(parsed) ? parsed : null
   } catch {
     return null
@@ -50,7 +54,8 @@ const nullableNumberArray = z.preprocess((v) => {
 // We convert it to number[] so uPlot can consume it without re-parsing on every render.
 const sleepPhaseString = z.preprocess((v) => {
   if (v === '' || v == null) return null
-  return String(v)
+  // Cast to string — this preprocessor is only called with CSV string cells.
+  return (v as string)
     .split('')
     .map(Number)
     .filter((n) => !isNaN(n))
@@ -59,8 +64,9 @@ const sleepPhaseString = z.preprocess((v) => {
 // Contributors fields come as JSON objects embedded in a CSV cell.
 const nullableJsonObject = z.preprocess((v) => {
   if (v === '' || v == null) return null
+  // Cast to string — this preprocessor is only called with CSV string cells.
   try {
-    return JSON.parse(String(v)) as unknown
+    return JSON.parse(v as string) as unknown
   } catch {
     return null
   }
