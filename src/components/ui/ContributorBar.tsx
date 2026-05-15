@@ -16,7 +16,11 @@ interface ContributorBarProps {
   optimal?: boolean
 }
 
-export function ContributorBar({ label, value, optimal = false }: ContributorBarProps): ReactElement {
+export function ContributorBar({
+  label,
+  value,
+  optimal = false,
+}: ContributorBarProps): ReactElement {
   const pct = value !== null ? Math.max(0, Math.min(100, value)) : null
 
   const barColor =
@@ -42,7 +46,7 @@ export function ContributorBar({ label, value, optimal = false }: ContributorBar
       >
         <div
           className={`h-full rounded-full transition-[width] duration-500 ease-out ${barColor}`}
-          style={{ width: pct !== null ? `${pct}%` : '0%' }}
+          style={{ width: pct !== null ? `${pct.toString()}%` : '0%' }}
         />
       </div>
 

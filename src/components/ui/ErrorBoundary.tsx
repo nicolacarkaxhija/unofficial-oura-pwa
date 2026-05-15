@@ -32,9 +32,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     super(props)
     // exactOptionalPropertyTypes: don't explicitly set routeKey to undefined;
     // omit the key when props.routeKey is absent.
-    this.state = props.routeKey !== undefined
-      ? { hasError: false, routeKey: props.routeKey }
-      : { hasError: false }
+    this.state =
+      props.routeKey !== undefined
+        ? { hasError: false, routeKey: props.routeKey }
+        : { hasError: false }
   }
 
   static getDerivedStateFromProps(
@@ -51,7 +52,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     return null
   }
 
-  static getDerivedStateFromError(_error: Error): Partial<ErrorBoundaryState> {
+  static getDerivedStateFromError(_err: Error): Partial<ErrorBoundaryState> {
     return { hasError: true }
   }
 

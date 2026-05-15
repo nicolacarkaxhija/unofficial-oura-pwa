@@ -24,27 +24,15 @@ function DeltaIndicator({ delta }: { delta: number }): ReactElement | null {
       className={`inline-flex items-center gap-0.5 text-sm font-medium ${
         isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
       }`}
-      aria-label={`${isPositive ? 'up' : 'down'} ${Math.abs(delta)}`}
+      aria-label={`${isPositive ? 'up' : 'down'} ${Math.abs(delta).toString()}`}
     >
       {/* Inline SVG arrows — no icon library dependency */}
       {isPositive ? (
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 12 12"
-          fill="none"
-          aria-hidden="true"
-        >
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
           <path d="M6 2L10 8H2L6 2Z" fill="currentColor" />
         </svg>
       ) : (
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 12 12"
-          fill="none"
-          aria-hidden="true"
-        >
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
           <path d="M6 10L2 4H10L6 10Z" fill="currentColor" />
         </svg>
       )}
@@ -54,7 +42,9 @@ function DeltaIndicator({ delta }: { delta: number }): ReactElement | null {
 }
 
 export function ScoreCard({ title, value, subtitle, delta }: ScoreCardProps): ReactElement {
-  const displayValue = value !== null && value !== undefined ? value : '—'
+  // `value` is typed as `string | number | null` — undefined is not in the union,
+  // so the `!== undefined` guard is always true and can be dropped.
+  const displayValue = value !== null ? value : '—'
 
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-gray-800">
@@ -63,9 +53,7 @@ export function ScoreCard({ title, value, subtitle, delta }: ScoreCardProps): Re
       </p>
 
       <div className="mt-1 flex items-end gap-2">
-        <span className="text-3xl font-bold text-gray-900 dark:text-white">
-          {displayValue}
-        </span>
+        <span className="text-3xl font-bold text-gray-900 dark:text-white">{displayValue}</span>
         {delta !== undefined && <DeltaIndicator delta={delta} />}
       </div>
 

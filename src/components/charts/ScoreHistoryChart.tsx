@@ -97,7 +97,7 @@ export default function ScoreHistoryChart({ data, color }: ScoreHistoryChartProp
           width={40}
         />
         <Tooltip
-          formatter={(value: number) => [`${value}`, 'Score']}
+          formatter={(value: number) => [String(value), 'Score']}
           labelFormatter={(label: string) => formatDay(label)}
           contentStyle={{
             // Tooltip lives outside the SVG so Tailwind dark: doesn't apply.

@@ -49,12 +49,7 @@ const CONTRIBUTOR_LABELS: Record<string, string> = {
 }
 
 function humanise(key: string): string {
-  return (
-    CONTRIBUTOR_LABELS[key] ??
-    key
-      .replace(/_/g, ' ')
-      .replace(/\b\w/g, (c) => c.toUpperCase())
-  )
+  return CONTRIBUTOR_LABELS[key] ?? key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 export default function ContributorRadar({ contributors }: ContributorRadarProps) {
@@ -77,9 +72,7 @@ export default function ContributorRadar({ contributors }: ContributorRadarProps
         {/* PolarGrid and PolarAngleAxis both pick up text/stroke from the SVG
             cascade, so dark: Tailwind variants on a wrapper <div> are enough —
             no explicit colour props needed here, unlike canvas charts. */}
-        <PolarGrid
-          className="stroke-gray-200 dark:stroke-gray-700"
-        />
+        <PolarGrid className="stroke-gray-200 dark:stroke-gray-700" />
         <PolarAngleAxis
           dataKey="subject"
           tick={{
@@ -100,7 +93,7 @@ export default function ContributorRadar({ contributors }: ContributorRadarProps
           dot={false}
         />
         <Tooltip
-          formatter={(value: number) => [`${value}`, 'Score']}
+          formatter={(value: number) => [String(value), 'Score']}
           contentStyle={{
             // Tooltip sits outside the SVG so Tailwind dark: doesn't apply;
             // we use inline styles instead.

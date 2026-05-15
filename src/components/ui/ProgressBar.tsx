@@ -16,9 +16,7 @@ export function ProgressBar({ pct, label }: ProgressBarProps): ReactElement {
 
   return (
     <div className="w-full space-y-1">
-      {label !== undefined && (
-        <p className="text-sm text-gray-600 dark:text-gray-400">{label}</p>
-      )}
+      {label !== undefined && <p className="text-sm text-gray-600 dark:text-gray-400">{label}</p>}
       <div
         className="h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
         role="progressbar"
@@ -29,7 +27,7 @@ export function ProgressBar({ pct, label }: ProgressBarProps): ReactElement {
       >
         <div
           className="h-full rounded-full bg-sky-500 transition-[width] duration-300 ease-out dark:bg-sky-400"
-          style={{ width: `${clamped}%` }}
+          style={{ width: `${clamped.toString()}%` }}
         />
       </div>
     </div>

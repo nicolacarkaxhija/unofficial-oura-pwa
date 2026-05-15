@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
-import { useTheme } from '@/theme/ThemeContext'
+import { useTheme } from '@/theme/useTheme'
 
 // ─── Why uPlot here, not Recharts ────────────────────────────────────────────
 //
@@ -152,16 +152,17 @@ export default function HypnogramChart({
           width: 1,
           // step-before interpolation matches the "current phase for this
           // 5-minute window" semantics (phase doesn't change mid-interval).
-          // uPlot.paths.stepped is typed as optional but is always present at
-          // runtime (it ships with the uPlot bundle). The non-null assertion
-          // avoids PathBuilder | undefined which exactOptionalPropertyTypes rejects.
-          paths: uPlot.paths.stepped!({ align: 1 }),
+          // uPlot.paths.stepped ships with every uPlot bundle but is typed as
+          // optional. We use a guarded call instead of a non-null assertion so
+          // strictTypeChecked rules are satisfied; if somehow absent (e.g., a
+          // future stripped build), uPlot will fall back to its default renderer.
+          paths: uPlot.paths.stepped?.({ align: 1 }),
           fill: (self, seriesIdx) => {
             // Return a canvas gradient that picks the fill colour per-segment.
             // We abuse the fill callback to return a CanvasGradient whose stops
             // correspond to phase transitions across the x domain.
             const ctx = self.ctx
-            const { left, top, width, height: h } = self.bbox
+            const { left, top, width } = self.bbox
 
             const grad = ctx.createLinearGradient(left, top, left + width, top)
 
@@ -222,5 +223,13 @@ export default function HypnogramChart({
     )
   }
 
-  return <div ref={containerRef} className="w-full" aria-label={t('stages.title')} role="img" data-testid="hypnogram-canvas" />
+  return (
+    <div
+      ref={containerRef}
+      className="w-full"
+      aria-label={t('stages.title')}
+      role="img"
+      data-testid="hypnogram-canvas"
+    />
+  )
 }

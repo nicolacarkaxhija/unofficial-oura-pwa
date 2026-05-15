@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
-import { useTheme } from '@/theme/ThemeContext'
+import { useTheme } from '@/theme/useTheme'
 
 // ─── Why uPlot over Recharts for this component ───────────────────────────────
 //

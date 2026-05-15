@@ -17,7 +17,7 @@
 
 import { Link, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { useTheme } from '@/theme/ThemeContext'
+import { useTheme } from '@/theme/useTheme'
 import type { ReactElement } from 'react'
 
 // ─── Inline SVG Icons ─────────────────────────────────────────────────────────

@@ -59,16 +59,13 @@ export function ScoreRing({ score, size = 80, color }: ScoreRingProps): ReactEle
   const strokeColor = COLOR_MAP[color] ?? NEUTRAL_COLOR
   const activeStroke = score !== null ? strokeColor : NEUTRAL_COLOR
 
-  const label =
-    score !== null
-      ? `Score: ${score} out of 100`
-      : 'Score unavailable'
+  const label = score !== null ? `Score: ${score.toString()} out of 100` : 'Score unavailable'
 
   return (
     <svg
       width={size}
       height={size}
-      viewBox={`0 0 ${size} ${size}`}
+      viewBox={`0 0 ${size.toString()} ${size.toString()}`}
       aria-label={label}
       role="img"
       style={{ transform: 'rotate(-90deg)' }}
