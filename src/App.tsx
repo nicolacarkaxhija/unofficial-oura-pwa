@@ -3,7 +3,6 @@ import { Outlet } from '@tanstack/react-router'
 import { BottomNav } from '@/components/ui'
 import { useHasData } from '@/db/hooks'
 import { db } from '@/db/client'
-import type { MetaEntry } from '@/db/schema'
 import Onboarding from '@/pages/Onboarding'
 
 // ─── Eviction Recovery ────────────────────────────────────────────────────────
@@ -21,7 +20,9 @@ import Onboarding from '@/pages/Onboarding'
 // this is a one-shot signal at boot — context would add a Provider and a
 // separate hook import chain just to pass a boolean.
 
-export function useEvictionCheck() {
+// Not exported — only used inside this module. Exporting a hook from a .tsx
+// file that also has a default component export triggers react-refresh warnings.
+function useEvictionCheck() {
   useEffect(() => {
     void checkAndRepair()
   }, [])
@@ -31,7 +32,9 @@ async function checkAndRepair(): Promise<void> {
   const count = await db.sleepDays.count()
   if (count > 0) return // data intact — nothing to recover
 
-  const zipEntry = (await db.meta.get('zipBlob')) as MetaEntry | undefined
+  // Dexie's Table<MetaEntry, string>.get() already returns MetaEntry | undefined;
+  // no cast needed — the type is inferred from the table's generic parameter.
+  const zipEntry = await db.meta.get('zipBlob')
   if (!zipEntry?.value) {
     // Both the records and the ZIP are gone (full Safari eviction).
     // Signal to Onboarding.tsx that a re-import is required.
