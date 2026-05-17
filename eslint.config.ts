@@ -1,10 +1,22 @@
+import { defineConfig } from 'eslint/config'
 import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 
-export default tseslint.config(
-  { ignores: ['dist', 'node_modules', '.changeset', 'tests/fixtures/oura_export.zip'] },
+// defineConfig() is ESLint core's successor to the deprecated tseslint.config()
+// helper. Using it directly removes the @typescript-eslint/no-deprecated warning
+// that fires on tseslint.config() in typescript-eslint ≥ 8.x.
+export default defineConfig([
+  {
+    ignores: [
+      'dist',
+      'node_modules',
+      '.changeset',
+      'tests/fixtures/oura_export.zip',
+      '.claude/worktrees/**',
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.strictTypeChecked],
     files: ['**/*.{ts,tsx}'],
@@ -30,6 +42,9 @@ export default tseslint.config(
       '@typescript-eslint/use-unknown-in-catch-callback-variable': 'error',
       // Floating promises in event handlers or useEffect are a common bug source
       '@typescript-eslint/no-floating-promises': 'error',
+      // Allow unused function parameters prefixed with _ (convention for intentionally
+      // unused params, e.g. required lifecycle method signatures like getDerivedStateFromError).
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
-)
+])
