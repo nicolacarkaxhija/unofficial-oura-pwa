@@ -50,6 +50,36 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // ─── Manual chunk splitting ────────────────────────────────────────
+        //
+        // Without manualChunks, Rollup duplicates a shared library into every
+        // lazy page chunk that imports it — so each page that uses Recharts
+        // gets its own ~360 kB copy. manualChunks forces these libraries into
+        // a single shared chunk that is fetched once and cached, regardless of
+        // how many pages import them.
+        //
+        // The chunk names here become part of the asset filename so they
+        // appear clearly in `npm run build` output for easy size monitoring.
+        manualChunks: {
+          // Recharts pulls in d3-scale, d3-shape, etc. — worth isolating.
+          // ContributorRadar and ScoreHistoryChart both use it; hoisting to a
+          // shared chunk avoids the ~360 kB being duplicated per page chunk.
+          recharts: ['recharts'],
+          // uPlot is used by HypnogramChart and TimeSeriesChart (sleep detail).
+          uplot: ['uplot'],
+          // Dexie is the IndexedDB wrapper used by every db/hooks call.
+          // It should never appear duplicated in page chunks.
+          dexie: ['dexie'],
+          // i18next is large enough (~70 kB) to warrant its own chunk so it
+          // can be cached independently of app logic changes.
+          i18n: ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
+        },
+      },
+    },
+  },
   // Vite supports Web Workers natively via `new Worker(new URL('./worker.ts', import.meta.url))`.
   // No extra config is needed; this comment documents the pattern agents should follow.
 })
