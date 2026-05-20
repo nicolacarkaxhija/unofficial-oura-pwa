@@ -34,7 +34,10 @@ function applyTheme(theme: Theme): void {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     const stored = localStorage.getItem('theme') as Theme | null
-    return stored ?? 'system'
+    // Default to 'light' — dark mode is an explicit user choice in Settings,
+    // not the automatic experience. 'system' remains available but is not the
+    // out-of-the-box default so first-time users always land in light mode.
+    return stored ?? 'light'
   })
 
   const resolvedTheme = theme === 'system' ? getSystemTheme() : theme
@@ -45,9 +48,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     // When theme is 'system', also listen for OS-level changes at runtime
     if (theme !== 'system') return
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = () => applyTheme('system')
+    const handler = () => {
+      applyTheme('system')
+    }
     mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
+    return () => {
+      mq.removeEventListener('change', handler)
+    }
   }, [theme])
 
   function setTheme(next: Theme) {
