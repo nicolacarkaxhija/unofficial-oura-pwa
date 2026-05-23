@@ -134,7 +134,9 @@ describe('parseSleepDays', () => {
     const result = parseSleepDays([VALID_SLEEP_DAY_ROW])
 
     expect(result).toHaveLength(1)
-    const record = result[0]
+    // noUncheckedIndexedAccess: result[0] is T | undefined; the toHaveLength(1)
+    // assertion above guarantees it exists, so the non-null assertion is safe.
+    const record = result[0]!
     expect(record.day).toBe('2024-03-15')
     expect(record.id).toBe('sleep-day-uuid-1')
     // Zod coerces "82" → 82; the DB interface stores number, not string
@@ -155,7 +157,8 @@ describe('parseSleepDays', () => {
 
     expect(result).toHaveLength(0)
     expect(warnSpy).toHaveBeenCalledOnce()
-    expect(warnSpy.mock.calls[0][0]).toMatch(/parseSleepDays.*Skipping row 0/)
+    // noUncheckedIndexedAccess: two levels of indexing need non-null assertions.
+    expect(warnSpy.mock.calls[0]![0]).toMatch(/parseSleepDays.*Skipping row 0/)
   })
 
   it('returns only valid records when mixed with invalid rows', () => {
@@ -164,7 +167,7 @@ describe('parseSleepDays', () => {
 
     // Only the one valid row in the middle should come through
     expect(result).toHaveLength(1)
-    expect(result[0].day).toBe('2024-03-15')
+    expect(result[0]!.day).toBe('2024-03-15')
     // Two bad rows means two warnings
     expect(warnSpy).toHaveBeenCalledTimes(2)
   })
@@ -174,19 +177,22 @@ describe('parseSleepDays', () => {
       ...VALID_SLEEP_DAY_ROW,
       optimal_bedtime: '{"start":"22:30","end":"06:30"}',
     }
-    const [record] = parseSleepDays([row])
+    // noUncheckedIndexedAccess: use [0]! since the valid input guarantees a result.
+    const record = parseSleepDays([row])[0]!
     expect(record.optimalBedtime).toEqual({ start: '22:30', end: '06:30' })
   })
 
   it('parses optional optimal_bedtime hyphen format into {start, end}', () => {
     const row = { ...VALID_SLEEP_DAY_ROW, optimal_bedtime: '22:30-06:30' }
-    const [record] = parseSleepDays([row])
+    // noUncheckedIndexedAccess: use [0]! since the valid input guarantees a result.
+    const record = parseSleepDays([row])[0]!
     expect(record.optimalBedtime).toEqual({ start: '22:30', end: '06:30' })
   })
 
   it('stores null for unparseable optimal_bedtime', () => {
     const row = { ...VALID_SLEEP_DAY_ROW, optimal_bedtime: 'garbage' }
-    const [record] = parseSleepDays([row])
+    // noUncheckedIndexedAccess: use [0]! since the valid input guarantees a result.
+    const record = parseSleepDays([row])[0]!
     expect(record.optimalBedtime).toBeNull()
   })
 
@@ -199,7 +205,7 @@ describe('parseSleepDays', () => {
 
 describe('parseSleepSessions', () => {
   it('maps a valid CSV row to the SleepSession DB shape', () => {
-    const [record] = parseSleepSessions([VALID_SLEEP_SESSION_ROW])
+    const record = parseSleepSessions([VALID_SLEEP_SESSION_ROW])[0]!
 
     expect(record.id).toBe('sleep-session-uuid-1')
     expect(record.day).toBe('2024-03-15')
@@ -231,7 +237,7 @@ describe('parseSleepSessions', () => {
     const result = parseSleepSessions([bad, VALID_SLEEP_SESSION_ROW, bad])
 
     expect(result).toHaveLength(1)
-    expect(result[0].id).toBe('sleep-session-uuid-1')
+    expect(result[0]!.id).toBe('sleep-session-uuid-1')
     expect(warnSpy).toHaveBeenCalledTimes(2)
   })
 })
@@ -240,7 +246,7 @@ describe('parseSleepSessions', () => {
 
 describe('parseReadinessDays', () => {
   it('maps a valid CSV row to the ReadinessDay DB shape', () => {
-    const [record] = parseReadinessDays([VALID_READINESS_ROW])
+    const record = parseReadinessDays([VALID_READINESS_ROW])[0]!
 
     expect(record.day).toBe('2024-03-15')
     expect(record.score).toBe(78)
@@ -271,7 +277,7 @@ describe('parseReadinessDays', () => {
 
 describe('parseResilienceDays', () => {
   it('maps a valid CSV row and unpacks contributors into top-level fields', () => {
-    const [record] = parseResilienceDays([VALID_RESILIENCE_ROW])
+    const record = parseResilienceDays([VALID_RESILIENCE_ROW])[0]!
 
     expect(record.day).toBe('2024-03-15')
     expect(record.level).toBe('solid')
@@ -296,7 +302,7 @@ describe('parseResilienceDays', () => {
 
   it('stores null when contributors JSON is missing resilience sub-keys', () => {
     const row = { ...VALID_RESILIENCE_ROW, contributors: '{}' }
-    const [record] = parseResilienceDays([row])
+    const record = parseResilienceDays([row])[0]!
     expect(record.sleepRecovery).toBeNull()
     expect(record.daytimeRecovery).toBeNull()
     expect(record.stress).toBeNull()
@@ -307,7 +313,7 @@ describe('parseResilienceDays', () => {
 
 describe('parseActivityDays', () => {
   it('maps a valid CSV row to the ActivityDay DB shape', () => {
-    const [record] = parseActivityDays([VALID_ACTIVITY_ROW])
+    const record = parseActivityDays([VALID_ACTIVITY_ROW])[0]!
 
     expect(record.day).toBe('2024-03-15')
     expect(record.steps).toBe(9876)
@@ -336,7 +342,7 @@ describe('parseActivityDays', () => {
 
 describe('parseWorkouts', () => {
   it('maps a valid CSV row to the Workout DB shape', () => {
-    const [record] = parseWorkouts([VALID_WORKOUT_ROW])
+    const record = parseWorkouts([VALID_WORKOUT_ROW])[0]!
 
     expect(record.id).toBe('workout-uuid-1')
     expect(record.startDatetime).toBe('2024-03-15T07:30:00+00:00')
@@ -366,7 +372,7 @@ describe('parseWorkouts', () => {
 
 describe('parseMeditations', () => {
   it('maps a valid CSV row to the Meditation DB shape', () => {
-    const [record] = parseMeditations([VALID_MEDITATION_ROW])
+    const record = parseMeditations([VALID_MEDITATION_ROW])[0]!
 
     expect(record.id).toBe('meditation-uuid-1')
     expect(record.day).toBe('2024-03-15')
@@ -390,7 +396,7 @@ describe('parseMeditations', () => {
 
   it('maps optional type and mood when present', () => {
     const row = { ...VALID_MEDITATION_ROW, type: 'body', mood: 'good' }
-    const [record] = parseMeditations([row])
+    const record = parseMeditations([row])[0]!
     expect(record.type).toBe('body')
     expect(record.mood).toBe('good')
   })
@@ -400,7 +406,7 @@ describe('parseMeditations', () => {
 
 describe('parseStressPoints', () => {
   it('maps a valid CSV row to the StressPoint DB shape', () => {
-    const [record] = parseStressPoints([VALID_STRESS_ROW])
+    const record = parseStressPoints([VALID_STRESS_ROW])[0]!
 
     expect(record.timestamp).toBe('2024-03-15T10:00:00+00:00')
     // day is derived from the timestamp, not a separate CSV column
@@ -421,13 +427,13 @@ describe('parseStressPoints', () => {
     const bad = { stress_value: '50' } // missing timestamp
     const result = parseStressPoints([bad, VALID_STRESS_ROW, bad])
     expect(result).toHaveLength(1)
-    expect(result[0].day).toBe('2024-03-15')
+    expect(result[0]!.day).toBe('2024-03-15')
     expect(warnSpy).toHaveBeenCalledTimes(2)
   })
 
   it('stores null for empty stress_value and recovery_value cells', () => {
     const row = { ...VALID_STRESS_ROW, stress_value: '', recovery_value: '' }
-    const [record] = parseStressPoints([row])
+    const record = parseStressPoints([row])[0]!
     expect(record.stressValue).toBeNull()
     expect(record.recoveryValue).toBeNull()
   })
