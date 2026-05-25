@@ -30,7 +30,11 @@ interface ErrorBoundaryState {
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props)
-    this.state = { hasError: false, routeKey: props.routeKey }
+    // exactOptionalPropertyTypes: don't explicitly set routeKey to undefined;
+    // omit the key when props.routeKey is absent.
+    this.state = props.routeKey !== undefined
+      ? { hasError: false, routeKey: props.routeKey }
+      : { hasError: false }
   }
 
   static getDerivedStateFromProps(
@@ -39,7 +43,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   ): Partial<ErrorBoundaryState> | null {
     // If the route changed, clear the error so the new route can render cleanly
     if (props.routeKey !== state.routeKey) {
-      return { hasError: false, routeKey: props.routeKey }
+      // exactOptionalPropertyTypes: omit routeKey key when undefined
+      return props.routeKey !== undefined
+        ? { hasError: false, routeKey: props.routeKey }
+        : { hasError: false }
     }
     return null
   }

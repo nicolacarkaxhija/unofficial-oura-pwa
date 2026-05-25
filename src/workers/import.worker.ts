@@ -130,7 +130,9 @@ function transformSleepDays(rows: Record<string, string>[]): SleepDay[] {
         day: r.day,
         id: r.id,
         score: r.score,
-        contributors: (r.contributors as SleepDay['contributors']) ?? {
+        // Cast through unknown: the Zod schema parses contributors as
+        // Record<string,number|null> but runtime shape matches SleepContributors.
+        contributors: (r.contributors as unknown as SleepDay['contributors']) ?? {
           deep_sleep: null,
           efficiency: null,
           latency: null,
@@ -201,7 +203,9 @@ function transformReadinessDays(
         stressHigh: r.stress_high,
         recoveryHigh: r.recovery_high,
         daySummary: r.day_summary ?? null,
-        contributors: (r.contributors as ReadinessDay['contributors']) ?? {
+        // Cast through unknown: the Zod schema parses contributors as
+        // Record<string,number|null> but runtime shape matches ReadinessContributors.
+        contributors: (r.contributors as unknown as ReadinessDay['contributors']) ?? {
           activity_balance: null,
           body_temperature: null,
           hrv_balance: null,

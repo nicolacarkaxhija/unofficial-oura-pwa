@@ -64,9 +64,12 @@ function parseOptimalBedtime(raw: string | null | undefined): { start: string; e
       typeof (parsed as Record<string, unknown>).start === 'string' &&
       typeof (parsed as Record<string, unknown>).end === 'string'
     ) {
+      const rec = parsed as Record<string, string>
+      // noUncheckedIndexedAccess: extract to variables with non-null assertions
+      // since the typeof guards above confirm both keys are strings.
       return {
-        start: (parsed as Record<string, string>).start,
-        end: (parsed as Record<string, string>).end,
+        start: rec['start']!,
+        end: rec['end']!,
       }
     }
   } catch {
@@ -74,8 +77,12 @@ function parseOptimalBedtime(raw: string | null | undefined): { start: string; e
   }
   // Attempt 2: "HH:MM-HH:MM" format (older CSV exports)
   const parts = raw.split('-')
-  if (parts.length === 2 && parts[0].trim() && parts[1].trim()) {
-    return { start: parts[0].trim(), end: parts[1].trim() }
+  // noUncheckedIndexedAccess: extract indices to variables so TS narrows them
+  // after the truthiness check inside the if-body.
+  const partStart = parts[0]
+  const partEnd = parts[1]
+  if (parts.length === 2 && partStart?.trim() && partEnd?.trim()) {
+    return { start: partStart.trim(), end: partEnd.trim() }
   }
   return null
 }

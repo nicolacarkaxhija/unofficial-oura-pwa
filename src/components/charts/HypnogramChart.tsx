@@ -151,8 +151,11 @@ export default function HypnogramChart({
           stroke: palette.axis,
           width: 1,
           // step-before interpolation matches the "current phase for this
-          // 5-minute window" semantics (phase doesn't change mid-interval)
-          paths: uPlot.paths.stepped?.({ align: 1 }),
+          // 5-minute window" semantics (phase doesn't change mid-interval).
+          // uPlot.paths.stepped is typed as optional but is always present at
+          // runtime (it ships with the uPlot bundle). The non-null assertion
+          // avoids PathBuilder | undefined which exactOptionalPropertyTypes rejects.
+          paths: uPlot.paths.stepped!({ align: 1 }),
           fill: (self, seriesIdx) => {
             // Return a canvas gradient that picks the fill colour per-segment.
             // We abuse the fill callback to return a CanvasGradient whose stops

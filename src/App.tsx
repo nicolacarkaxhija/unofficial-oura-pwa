@@ -40,8 +40,11 @@ async function checkAndRepair(): Promise<void> {
   }
 
   // ZIP blob survived; trigger silent re-import via the worker.
+  // The blob is passed in the detail object (not as a top-level CustomEventInit
+  // property, which doesn't exist in the DOM type) so the Onboarding listener
+  // can extract it via e.detail.blob.
   window.dispatchEvent(
-    new CustomEvent('oura:eviction', { detail: 'reparse', blob: zipEntry.value }),
+    new CustomEvent('oura:eviction', { detail: { type: 'reparse', blob: zipEntry.value } }),
   )
 }
 
