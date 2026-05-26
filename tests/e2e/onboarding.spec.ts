@@ -42,11 +42,12 @@ test('fresh visit with no data shows onboarding screen with import button', asyn
   await expect(page.getByRole('button', { name: 'Import ZIP' })).toBeVisible()
 })
 
+// workerInfo is not a Playwright fixture — parallelIndex lives on testInfo
+// (the second argument to test callbacks).
 test('uploading fixture ZIP shows progress bar then dashboard with scores', async ({
   page,
-  workerInfo,
-}) => {
-  const zipPath = await createFixtureZipFile(tmpDir(workerInfo.parallelIndex))
+}, testInfo) => {
+  const zipPath = await createFixtureZipFile(tmpDir(testInfo.parallelIndex))
 
   await page.goto('/')
 
@@ -76,9 +77,8 @@ test('uploading fixture ZIP shows progress bar then dashboard with scores', asyn
 
 test('after import, refresh page persists data (no onboarding)', async ({
   page,
-  workerInfo,
-}) => {
-  const zipPath = await createFixtureZipFile(tmpDir(workerInfo.parallelIndex))
+}, testInfo) => {
+  const zipPath = await createFixtureZipFile(tmpDir(testInfo.parallelIndex))
 
   await page.goto('/')
   await page.setInputFiles('[data-testid="zip-input"]', zipPath)
@@ -96,9 +96,8 @@ test('after import, refresh page persists data (no onboarding)', async ({
 
 test('clearing all data in Settings causes onboarding to reappear', async ({
   page,
-  workerInfo,
-}) => {
-  const zipPath = await createFixtureZipFile(tmpDir(workerInfo.parallelIndex))
+}, testInfo) => {
+  const zipPath = await createFixtureZipFile(tmpDir(testInfo.parallelIndex))
 
   // Seed data first.
   await page.goto('/')

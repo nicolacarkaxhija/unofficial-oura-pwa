@@ -14,8 +14,10 @@ import { createFixtureZipFile } from './helpers/fixtureZip'
 let seededPage: Page
 let sharedContext: BrowserContext
 
-test.beforeAll(async ({ browser, workerInfo }) => {
-  const tmpDir = join(tmpdir(), `oura-readiness-${workerInfo.parallelIndex}`)
+// workerInfo is not a Playwright fixture — parallelIndex lives on testInfo
+// (the second argument to beforeAll / test callbacks).
+test.beforeAll(async ({ browser }, testInfo) => {
+  const tmpDir = join(tmpdir(), `oura-readiness-${testInfo.parallelIndex}`)
   const zipPath = await createFixtureZipFile(tmpDir)
 
   sharedContext = await browser.newContext()

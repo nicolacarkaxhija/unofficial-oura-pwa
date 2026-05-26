@@ -20,8 +20,10 @@ let seededPage: Page
 let sharedContext: BrowserContext
 let zipPath: string
 
-test.beforeAll(async ({ browser, workerInfo }) => {
-  const tmpDir = join(tmpdir(), `oura-sleep-${workerInfo.parallelIndex}`)
+// workerInfo is not a Playwright fixture — parallelIndex lives on testInfo
+// (the second argument to beforeAll / test callbacks).
+test.beforeAll(async ({ browser }, testInfo) => {
+  const tmpDir = join(tmpdir(), `oura-sleep-${testInfo.parallelIndex}`)
   zipPath = await createFixtureZipFile(tmpDir)
 
   // Create a single persistent context so IndexedDB survives across tests.

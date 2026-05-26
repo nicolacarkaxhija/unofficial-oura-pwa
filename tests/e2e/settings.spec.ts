@@ -68,12 +68,13 @@ test('switching theme to dark adds the dark class to <html>', async ({ page }) =
   await expect(page.locator('html')).toHaveClass(/\bdark\b/)
 })
 
+// workerInfo is not a Playwright fixture — parallelIndex lives on testInfo
+// (the second argument to test callbacks).
 test('clear all data → confirmation prompt → data cleared → onboarding shown', async ({
   browser,
-  workerInfo,
-}) => {
+}, testInfo) => {
   // This test needs seeded data so "Clear all data" has something to clear.
-  const tmpDir = join(tmpdir(), `oura-settings-clear-${workerInfo.parallelIndex}`)
+  const tmpDir = join(tmpdir(), `oura-settings-clear-${testInfo.parallelIndex}`)
   const zipPath = await createFixtureZipFile(tmpDir)
 
   const ctx = await browser.newContext()

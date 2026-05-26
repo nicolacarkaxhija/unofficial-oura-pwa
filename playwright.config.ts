@@ -5,7 +5,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 2 : 0,
-  workers: process.env['CI'] ? 1 : undefined,
+  // exactOptionalPropertyTypes: omit the key entirely rather than setting it to
+  // undefined, since PlaywrightTestConfig marks `workers` as optional (not optional|undefined).
+  ...(process.env['CI'] ? { workers: 1 as const } : {}),
   reporter: process.env['CI'] ? 'github' : 'list',
   use: {
     baseURL: 'http://localhost:5173',
