@@ -13,6 +13,10 @@
     "noImplicitReturns": true,
     "exactOptionalPropertyTypes": true,
     "noFallthroughCasesInSwitch": true,
+    // vite/client: import.meta.env.DEV, .PROD, etc.
+    // vitest/globals: describe/it/expect/beforeEach available without explicit imports
+    //   when vitest is configured with globals: true.
+    "types": ["vite/client", "vitest/globals"],
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
@@ -20,10 +24,11 @@
     "skipLibCheck": true,
     // Path alias: import from '@/db/client' instead of '../../db/client'.
     // Also configured in vite.config.ts via resolve.alias.
+    // baseUrl is not needed — moduleResolution: Bundler supports paths without it,
+    // and baseUrl was deprecated in TS 6.0.
     "paths": {
       "@/*": ["./src/*"]
-    },
-    "baseUrl": "."
+    }
   },
   "include": ["src", "tests", "eslint.config.ts", "vite.config.ts", "vitest.config.ts", "playwright.config.ts", "prettier.config.ts"],
   "exclude": ["node_modules", "dist"]
