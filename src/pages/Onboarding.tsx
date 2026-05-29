@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ProgressBar } from '@/components/ui'
 
+// DEV-only seed function — Vite's tree-shaker drops this import in production
+// because it's only referenced inside `if (import.meta.env.DEV)` blocks.
+const DEV = import.meta.env.DEV
+
 // ─── Onboarding ───────────────────────────────────────────────────────────────
 //
 // Rendered by App.tsx when useHasData() returns false (no data in IndexedDB).
@@ -38,8 +42,24 @@ export default function Onboarding() {
   // Safari eviction: show a banner when the 'no-zip' event fires
   const [evicted, setEvicted] = useState(false)
 
+  const [seeding, setSeeding] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const workerRef = useRef<Worker | null>(null)
+
+  // ── Dev seed ────────────────────────────────────────────────────────────
+  // Bypasses the ZIP pipeline and writes synthetic data directly to IndexedDB.
+  // Only rendered in development; excluded from production bundle by tree-shaking.
+  async function handleSeedData() {
+    if (!DEV) return
+    setSeeding(true)
+    try {
+      const { seedDatabase } = await import('@/dev/seedDatabase')
+      await seedDatabase()
+      // useHasData() in App.tsx will react automatically — no navigation needed
+    } finally {
+      setSeeding(false)
+    }
+  }
 
   // Listen for the eviction event dispatched by App.tsx's checkAndRepair()
   useEffect(() => {
@@ -194,6 +214,25 @@ export default function Onboarding() {
         <p className="text-center text-xs text-slate-400 dark:text-slate-500">
           {t('legal')}
         </p>
+
+        {/* ── Dev-only shortcut ──────────────────────────────────────────
+            Load 90 days of synthetic data without a real ZIP.
+            Visible only in `npm run dev`; Vite removes this branch in builds. */}
+        {DEV && (
+          <div className="mt-6 border-t border-dashed border-slate-200 pt-6 dark:border-slate-700">
+            <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Dev mode
+            </p>
+            <button
+              type="button"
+              onClick={() => void handleSeedData()}
+              disabled={seeding}
+              className="w-full rounded-2xl border-2 border-dashed border-slate-300 py-3 text-sm font-semibold text-slate-500 transition-colors hover:border-emerald-400 hover:text-emerald-600 disabled:opacity-50 dark:border-slate-600 dark:text-slate-400"
+            >
+              {seeding ? 'Seeding 90 days…' : '⚡ Load demo data (dev only)'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
