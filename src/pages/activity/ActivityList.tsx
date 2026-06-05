@@ -1,4 +1,111 @@
-// Stub — implemented by Wave 2 agent (feat/pages branch)
+import { useTranslation } from 'react-i18next'
+import { Link } from '@tanstack/react-router'
+import { ScoreHistoryChart } from '@/components/charts'
+import { ScoreRing, LoadingSkeleton } from '@/components/ui'
+import { useActivityDays } from '@/db/hooks'
+
+// ─── ActivityList ─────────────────────────────────────────────────────────────
+//
+// Scrollable list of the last 90 activity days, newest first.
+// Each row: date, score ring, steps, active calories.
+//
+// Steps and calories are formatted with locale number separators (toLocaleString)
+// because "10,234" is easier to parse than "10234" at a glance.
+
+const ACTIVITY_COLOR = '#10b981' // emerald-500
+
+function formatDate(day: string): string {
+  return new Date(`${day}T00:00:00`).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    weekday: 'short',
+  })
+}
+
 export default function ActivityList() {
-  return <div>Activity List</div>
+  const { t } = useTranslation('activity')
+  const { t: tCommon } = useTranslation('common')
+
+  const days = useActivityDays(90)
+
+  return (
+    <div className="px-4 pt-8 pb-6">
+      <h1 className="mb-4 text-2xl font-bold text-slate-900 dark:text-white">
+        {t('title')}
+      </h1>
+
+      {days === undefined ? (
+        <div className="space-y-3">
+          <LoadingSkeleton className="h-48 w-full rounded-2xl" />
+          {Array.from({ length: 6 }).map((_, i) => (
+            <LoadingSkeleton key={i} className="h-16 w-full rounded-xl" />
+          ))}
+        </div>
+      ) : days.length === 0 ? (
+        <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+          {tCommon('noData')}
+        </p>
+      ) : (
+        <>
+          {/* 90-day trend chart */}
+          <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-800">
+            <p className="mb-2 text-xs font-semibold text-slate-500 uppercase dark:text-slate-400">
+              {t('score')} — 90 days
+            </p>
+            <ScoreHistoryChart
+              data={days.map((d) => ({ day: d.day, score: d.score }))}
+              color={ACTIVITY_COLOR}
+            />
+          </div>
+
+          {/* Day list */}
+          <ul className="space-y-2">
+            {days.map((day) => (
+              <li key={day.day}>
+                <Link
+                  to="/activity/$date"
+                  params={{ date: day.day }}
+                  className="flex items-center gap-4 rounded-xl bg-white px-4 py-3 shadow-sm transition-colors hover:bg-slate-50 active:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 dark:active:bg-slate-600"
+                >
+                  <ScoreRing score={day.score} size={48} color="emerald" />
+
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                      {formatDate(day.day)}
+                    </p>
+                    {/* Steps + active calories as quick-glance stats */}
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {day.steps !== null
+                        ? `${day.steps.toLocaleString()} ${t('stats.steps').toLowerCase()}`
+                        : '—'}
+                      {day.activeCalories !== null
+                        ? ` · ${day.activeCalories.toLocaleString()} kcal`
+                        : ''}
+                    </p>
+                  </div>
+
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    className="shrink-0 text-slate-300 dark:text-slate-600"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M6 4l4 4-4 4"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  )
 }
