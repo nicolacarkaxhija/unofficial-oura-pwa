@@ -219,5 +219,5 @@ export default function HypnogramChart({
     )
   }
 
-  return <div ref={containerRef} className="w-full" aria-label={t('stages.title')} role="img" />
+  return <div ref={containerRef} className="w-full" aria-label={t('stages.title')} role="img" data-testid="hypnogram-canvas" />
 }

@@ -168,6 +168,7 @@ export default function Onboarding() {
                 file-input styling is unreliable and the button UX is cleaner. */}
             <input
               ref={fileInputRef}
+              id="zip-input"
               type="file"
               accept=".zip"
               className="sr-only"

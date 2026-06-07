@@ -79,6 +79,7 @@ export default function SleepList() {
                 <Link
                   to="/sleep/$date"
                   params={{ date: day.day }}
+                  data-testid="sleep-day-item"
                   className="flex items-center gap-4 rounded-xl bg-white px-4 py-3 shadow-sm transition-colors hover:bg-slate-50 active:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 dark:active:bg-slate-600"
                 >
                   {/* Score ring — compact size for list density */}
