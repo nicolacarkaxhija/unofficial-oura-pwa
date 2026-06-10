@@ -1,7 +1,8 @@
-import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router'
+import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 import { lazy, Suspense } from 'react'
 import { parseISO, isValid } from 'date-fns'
+import App from './App'
 
 // ─── Why TanStack Router (not React Router v6) ────────────────────────────────
 //
@@ -36,12 +37,12 @@ function parseDateParam(raw: Record<string, string>): { date: string } {
 // ─── Route tree ───────────────────────────────────────────────────────────────
 
 const rootRoute = createRootRoute({
-  // The root renders the persistent app shell (bottom tab bar + header).
-  // <Outlet /> is replaced by the matched child route's component.
-  // TanStackRouterDevtools renders only in development (it tree-shakes in prod).
+  // The root renders App which handles the onboarding gate, app shell, and
+  // BottomNav. <Outlet /> inside App receives the matched child route page.
+  // TanStackRouterDevtools renders only in development (tree-shakes in prod).
   component: () => (
     <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading…</div>}>
-      <Outlet />
+      <App />
       {import.meta.env.DEV && <TanStackRouterDevtools />}
     </Suspense>
   ),
