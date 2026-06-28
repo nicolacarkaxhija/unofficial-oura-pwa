@@ -1,0 +1,160 @@
+# CI workflow: runs on every push (all branches) and on pull requests targeting main.
+# The four jobs run in sequence because each depends on the previous passing —
+# there's no point linting code that doesn't typecheck, and no point building
+# code whose tests are red.
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'   # every branch, so devs get feedback before opening a PR
+  pull_request:
+    branches:
+      - main   # gate merges to main
+
+jobs:
+  # ── 1. Typecheck ──────────────────────────────────────────────────────────
+  # Run tsc --noEmit first because type errors are the fastest signal that
+  # something is structurally broken. This also means lint/test won't waste
+  # runner-minutes on code that can't even compile.
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22 (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Cache node_modules keyed on the exact contents of package-lock.json.
+      # A lockfile change means a dependency changed, so we must bust the cache
+      # and re-install from scratch. Cache hits make this step near-instant.
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # npm ci is used (not npm install) because it installs exactly what the
+      # lockfile says, fails on any discrepancy, and never mutates the lockfile.
+      # This guarantees reproducible builds across machines and CI runs.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript type-check
+        run: npm run typecheck
+
+  # ── 2. Lint ───────────────────────────────────────────────────────────────
+  # ESLint catches style violations, unused vars, react-hooks rule violations,
+  # etc. Kept as a separate job so its failure is reported distinctly from
+  # typecheck failures — makes triage faster.
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    needs: typecheck   # only lint code that already typechecks
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22 (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+  # ── 3. Test (with coverage) ───────────────────────────────────────────────
+  # Vitest runs the unit/integration suite and emits lcov + text coverage
+  # reports (configured in vitest.config.ts, provider: v8, output: coverage/).
+  # We upload the coverage directory as a workflow artifact so it can be
+  # consumed by external coverage services (Codecov, Coveralls, etc.) or
+  # inspected manually from the Actions UI.
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: lint   # don't run tests if lint fails — keeps the log clean
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22 (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm ci
+
+      # test:coverage (not plain test) so coverage data is generated.
+      # The coverage directory output path matches vitest's default: ./coverage
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      # Upload the coverage/ directory as an artifact so it persists after the
+      # job finishes. Useful for hooking into Codecov, or downloading locally
+      # if a coverage regression needs investigation.
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          # Keep artifacts for 30 days — long enough to compare across PRs
+          # but short enough to not bloat storage.
+          retention-days: 30
+
+  # ── 4. Build ──────────────────────────────────────────────────────────────
+  # The build script runs tsc --noEmit again (belt-and-suspenders) then
+  # invokes Vite to produce the dist/ bundle. Running this as the final job
+  # confirms the production artifact can actually be built from the current
+  # source — typecheck alone doesn't catch Vite/plugin config issues.
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test   # only build if tests pass
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22 (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production bundle
+        run: npm run build
