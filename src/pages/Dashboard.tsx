@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { ScoreRing, LoadingSkeleton } from '@/components/ui'
@@ -49,6 +50,36 @@ export default function Dashboard() {
   const activityDays = useActivityDays(90)
 
   const loading = sleepDay === undefined || readinessDay === undefined || activityDay === undefined
+
+  // Memoized: computeWeeklyInsight/computeStreak each scan the full 90-row
+  // series, and Dashboard re-renders on every unrelated state change (route
+  // transitions, i18n updates). useLiveQuery returns a NEW array identity only
+  // when the underlying query result actually changes, so these deps are
+  // stable across re-renders with unchanged data — the six full-array scans
+  // then run only when the data (or the pillar labels' language) changes.
+  const trendRows = useMemo<TrendRow[] | null>(() => {
+    if (!sleepDays || !readinessDays || !activityDays) return null
+    return [
+      {
+        label: tSleep('title'),
+        insight: computeWeeklyInsight(sleepDays),
+        streak: computeStreak(sleepDays),
+        color: 'text-blue-500',
+      },
+      {
+        label: tReadiness('title'),
+        insight: computeWeeklyInsight(readinessDays),
+        streak: computeStreak(readinessDays),
+        color: 'text-indigo-500',
+      },
+      {
+        label: tActivity('title'),
+        insight: computeWeeklyInsight(activityDays),
+        streak: computeStreak(activityDays),
+        color: 'text-emerald-500',
+      },
+    ]
+  }, [sleepDays, readinessDays, activityDays, tSleep, tReadiness, tActivity])
 
   // The most recent day any pillar has data for — shown under the cards so
   // the user knows how fresh their export is.
@@ -123,30 +154,7 @@ export default function Dashboard() {
 
       {/* ── Trends ── week-over-week movement per pillar. Only rendered once
           the series have loaded and at least one pillar has an average. */}
-      {sleepDays && readinessDays && activityDays && (
-        <TrendsSection
-          rows={[
-            {
-              label: tSleep('title'),
-              insight: computeWeeklyInsight(sleepDays),
-              streak: computeStreak(sleepDays),
-              color: 'text-blue-500',
-            },
-            {
-              label: tReadiness('title'),
-              insight: computeWeeklyInsight(readinessDays),
-              streak: computeStreak(readinessDays),
-              color: 'text-indigo-500',
-            },
-            {
-              label: tActivity('title'),
-              insight: computeWeeklyInsight(activityDays),
-              streak: computeStreak(activityDays),
-              color: 'text-emerald-500',
-            },
-          ]}
-        />
-      )}
+      {trendRows && <TrendsSection rows={trendRows} />}
 
       {/* Date of the data being shown — tells the user how fresh their export is.
           T00:00:00 suffix keeps the Date in local time (a bare YYYY-MM-DD parses as UTC). */}
@@ -212,7 +220,7 @@ function TrendsSection({ rows }: { rows: TrendRow[] }) {
               <span className="text-xl font-bold text-slate-900 dark:text-white">
                 {insight.avg !== null ? Math.round(insight.avg) : '—'}
               </span>
-              {insight.delta !== null && <DeltaBadge delta={insight.delta} />}
+              {insight.delta !== null && <ScoreDeltaBadge delta={insight.delta} />}
             </div>
           </li>
         ))}
@@ -221,7 +229,11 @@ function TrendsSection({ rows }: { rows: TrendRow[] }) {
   )
 }
 
-function DeltaBadge({ delta }: { delta: number }) {
+// Named ScoreDeltaBadge, not DeltaBadge: it deliberately diverges from the
+// sibling strava repo's generic DeltaBadge. The ±0.5 flat threshold below is
+// specific to 0–100 daily scores and must not be assumed interchangeable —
+// the distinct name prevents false-parity assumptions between the two repos.
+function ScoreDeltaBadge({ delta }: { delta: number }) {
   const rounded = Math.round(delta * 10) / 10
   // ±0.5 is within day-to-day noise for 0–100 scores; call it flat rather
   // than colouring a meaningless movement.
