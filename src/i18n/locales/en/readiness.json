@@ -1,0 +1,26 @@
+{
+  "title": "Readiness",
+  "score": "Readiness Score",
+  "resilience": {
+    "title": "Resilience",
+    "exceptional": "Exceptional",
+    "strong": "Strong",
+    "solid": "Solid",
+    "adequate": "Adequate",
+    "weak": "Weak"
+  },
+  "contributors": {
+    "title": "Contributors",
+    "activityBalance": "Activity balance",
+    "bodyTemperature": "Body temperature",
+    "hrvBalance": "HRV balance",
+    "previousDayActivity": "Previous day activity",
+    "previousNight": "Previous night",
+    "recoveryIndex": "Recovery index",
+    "restingHeartRate": "Resting heart rate",
+    "sleepBalance": "Sleep balance"
+  },
+  "temperatureDeviation": "Temperature deviation",
+  "stressHigh": "High stress detected",
+  "recoveryHigh": "Strong recovery"
+}

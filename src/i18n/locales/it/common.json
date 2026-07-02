@@ -1,0 +1,17 @@
+{
+  "nav": {
+    "dashboard": "Riepilogo",
+    "sleep": "Sonno",
+    "readiness": "Prontezza",
+    "activity": "Attività",
+    "settings": "Impostazioni"
+  },
+  "score": "Punteggio",
+  "back": "Indietro",
+  "loading": "Caricamento…",
+  "noData": "Nessun dato disponibile per questa data",
+  "error": {
+    "generic": "Qualcosa è andato storto",
+    "invalidDate": "Data non valida"
+  }
+}

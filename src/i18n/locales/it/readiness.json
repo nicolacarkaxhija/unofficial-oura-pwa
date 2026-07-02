@@ -1,0 +1,26 @@
+{
+  "title": "Prontezza",
+  "score": "Punteggio prontezza",
+  "resilience": {
+    "title": "Resilienza",
+    "exceptional": "Eccezionale",
+    "strong": "Forte",
+    "solid": "Solida",
+    "adequate": "Adeguata",
+    "weak": "Debole"
+  },
+  "contributors": {
+    "title": "Fattori",
+    "activityBalance": "Equilibrio attività",
+    "bodyTemperature": "Temperatura corporea",
+    "hrvBalance": "Equilibrio HRV",
+    "previousDayActivity": "Attività del giorno precedente",
+    "previousNight": "Notte precedente",
+    "recoveryIndex": "Indice di recupero",
+    "restingHeartRate": "Frequenza cardiaca a riposo",
+    "sleepBalance": "Equilibrio sonno"
+  },
+  "temperatureDeviation": "Deviazione temperatura",
+  "stressHigh": "Stress elevato rilevato",
+  "recoveryHigh": "Recupero ottimale"
+}

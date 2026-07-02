@@ -1,0 +1,19 @@
+{
+  "title": "Connetti i tuoi dati Oura",
+  "subtitle": "Visualizza sonno, prontezza e attività senza abbonamento",
+  "steps": {
+    "heading": "Come importare i tuoi dati",
+    "step1": "Vai su membership.ouraring.com/data-export",
+    "step2": "Accedi con le tue credenziali Oura",
+    "step3": "Premi \"Richiedi esportazione dati\"",
+    "step4": "Attendi l'email di conferma (fino a 2,5 ore)",
+    "step5": "Scarica il file ZIP sul tuo dispositivo",
+    "step6": "Torna qui e premi Importa"
+  },
+  "importBtn": "Importa ZIP",
+  "legal": "I tuoi dati non lasciano mai il dispositivo. Questa app non ha server né analytics.",
+  "eviction": {
+    "noZip": "iOS ha cancellato i tuoi dati. Reimporta il ZIP per ripristinarli.",
+    "reparse": "Ripristino dati in corso…"
+  }
+}

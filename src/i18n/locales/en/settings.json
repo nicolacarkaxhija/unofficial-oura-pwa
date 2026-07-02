@@ -1,0 +1,27 @@
+{
+  "title": "Settings",
+  "data": {
+    "title": "Data",
+    "importBtn": "Import ZIP export",
+    "importNew": "Import new export",
+    "lastImport": "Last imported: {{date}}",
+    "clearAll": "Clear all data",
+    "clearConfirm": "This will delete all your health data from this device. You can re-import at any time.",
+    "storage": "Storage used: {{used}} of {{cap}}"
+  },
+  "appearance": {
+    "title": "Appearance",
+    "language": "Language",
+    "theme": "Theme",
+    "themeSystem": "System",
+    "themeLight": "Light",
+    "themeDark": "Dark"
+  },
+  "about": {
+    "title": "About",
+    "version": "Version {{version}}",
+    "github": "View source on GitHub",
+    "legal": "This app processes data you exported from Oura's official portal under GDPR Article 20. It is not affiliated with Oura Health.",
+    "privacy": "No data ever leaves your device. We have no server, no database, and no analytics."
+  }
+}

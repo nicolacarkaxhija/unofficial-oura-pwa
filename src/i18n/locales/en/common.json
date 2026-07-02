@@ -1,0 +1,17 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "sleep": "Sleep",
+    "readiness": "Readiness",
+    "activity": "Activity",
+    "settings": "Settings"
+  },
+  "score": "Score",
+  "back": "Back",
+  "loading": "Loading…",
+  "noData": "No data available for this date",
+  "error": {
+    "generic": "Something went wrong",
+    "invalidDate": "Invalid date"
+  }
+}

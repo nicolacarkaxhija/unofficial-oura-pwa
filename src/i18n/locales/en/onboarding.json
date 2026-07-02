@@ -1,0 +1,19 @@
+{
+  "title": "Connect your Oura data",
+  "subtitle": "View your sleep, readiness and activity without a subscription",
+  "steps": {
+    "heading": "How to import your data",
+    "step1": "Go to membership.ouraring.com/data-export",
+    "step2": "Log in with your Oura credentials",
+    "step3": "Tap \"Request Data Export\"",
+    "step4": "Wait for the confirmation email (up to 2.5 hours)",
+    "step5": "Download the ZIP file to your device",
+    "step6": "Return here and tap Import"
+  },
+  "importBtn": "Import ZIP",
+  "legal": "Your data never leaves your device. This app has no server and no analytics.",
+  "eviction": {
+    "noZip": "Your data was cleared by iOS. Import your ZIP to restore it.",
+    "reparse": "Restoring your data…"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "title": "Activity",
+  "score": "Activity Score",
+  "stats": {
+    "steps": "Steps",
+    "totalCalories": "Total calories",
+    "activeCalories": "Active calories",
+    "distance": "Distance",
+    "nonWearTime": "Non-wear time"
+  },
+  "intensity": {
+    "title": "Activity intensity",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+    "sedentary": "Sedentary",
+    "resting": "Resting"
+  },
+  "workouts": "Workouts",
+  "meditations": "Meditations",
+  "stress": "Stress & recovery",
+  "inactivityAlerts": "Inactivity alerts"
+}

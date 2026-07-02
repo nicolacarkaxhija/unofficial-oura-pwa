@@ -1,0 +1,23 @@
+{
+  "title": "Attività",
+  "score": "Punteggio attività",
+  "stats": {
+    "steps": "Passi",
+    "totalCalories": "Calorie totali",
+    "activeCalories": "Calorie attive",
+    "distance": "Distanza",
+    "nonWearTime": "Tempo senza anello"
+  },
+  "intensity": {
+    "title": "Intensità attività",
+    "high": "Alta",
+    "medium": "Media",
+    "low": "Bassa",
+    "sedentary": "Sedentario",
+    "resting": "Riposo"
+  },
+  "workouts": "Allenamenti",
+  "meditations": "Meditazioni",
+  "stress": "Stress e recupero",
+  "inactivityAlerts": "Avvisi inattività"
+}

@@ -1,0 +1,35 @@
+{
+  "title": "Sonno",
+  "score": "Punteggio sonno",
+  "detail": {
+    "bedtime": "Ora di andare a letto",
+    "wakeTime": "Ora di sveglia",
+    "totalSleep": "Sonno totale",
+    "efficiency": "Efficienza",
+    "latency": "Tempo per addormentarsi",
+    "averageHr": "FC media",
+    "lowestHr": "FC minima",
+    "averageHrv": "HRV medio",
+    "averageBreath": "Respiro medio",
+    "spo2": "SpO₂",
+    "restlessPeriods": "Periodi di agitazione",
+    "bdi": "Indice di disturbo respiratorio"
+  },
+  "stages": {
+    "title": "Fasi del sonno",
+    "awake": "Sveglio",
+    "rem": "REM",
+    "light": "Leggero",
+    "deep": "Profondo"
+  },
+  "contributors": {
+    "title": "Fattori",
+    "deepSleep": "Sonno profondo",
+    "efficiency": "Efficienza",
+    "latency": "Latenza",
+    "remSleep": "Sonno REM",
+    "restfulness": "Tranquillità",
+    "timing": "Tempistica",
+    "totalSleep": "Sonno totale"
+  }
+}

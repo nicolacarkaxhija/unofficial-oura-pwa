@@ -1,0 +1,35 @@
+{
+  "title": "Sleep",
+  "score": "Sleep Score",
+  "detail": {
+    "bedtime": "Bedtime",
+    "wakeTime": "Wake time",
+    "totalSleep": "Total sleep",
+    "efficiency": "Efficiency",
+    "latency": "Time to fall asleep",
+    "averageHr": "Avg HR",
+    "lowestHr": "Lowest HR",
+    "averageHrv": "Avg HRV",
+    "averageBreath": "Avg breath",
+    "spo2": "SpO₂",
+    "restlessPeriods": "Restless periods",
+    "bdi": "Breathing disturbance index"
+  },
+  "stages": {
+    "title": "Sleep stages",
+    "awake": "Awake",
+    "rem": "REM",
+    "light": "Light",
+    "deep": "Deep"
+  },
+  "contributors": {
+    "title": "Contributors",
+    "deepSleep": "Deep sleep",
+    "efficiency": "Efficiency",
+    "latency": "Latency",
+    "remSleep": "REM sleep",
+    "restfulness": "Restfulness",
+    "timing": "Timing",
+    "totalSleep": "Total sleep"
+  }
+}
