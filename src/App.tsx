@@ -2,23 +2,17 @@ import { useEffect } from 'react'
 import { Outlet, useRouterState } from '@tanstack/react-router'
 import { BottomNav } from '@/components/ui'
 import { useHasData } from '@/db/hooks'
-import { db } from '@/db/client'
 import Onboarding from '@/pages/Onboarding'
+import { checkAndRepair } from '@/lib/evictionRecovery'
 
 // ─── Eviction Recovery ────────────────────────────────────────────────────────
 //
 // Safari's WebKit wipes IndexedDB if the PWA is not opened for 7 days.
-// On every mount we check for records and — if missing — attempt to re-parse
-// from the ZIP blob stored in the `meta` table during the last import.
+// checkAndRepair() (see src/lib/evictionRecovery.ts) re-parses the stored ZIP
+// blob if the data is gone, or signals Onboarding when the blob is gone too.
 //
 // This hook is a side-effect-only shell; the actual UI is rendered below.
 // Mounting it at the root ensures the check runs before any page loads data.
-//
-// If the ZIP is gone too (both records and blob cleared), we dispatch a
-// custom event so the Onboarding page can show a "re-import required" banner.
-// A custom event is used here rather than a context or Zustand store because
-// this is a one-shot signal at boot — context would add a Provider and a
-// separate hook import chain just to pass a boolean.
 
 // Not exported — only used inside this module. Exporting a hook from a .tsx
 // file that also has a default component export triggers react-refresh warnings.
@@ -26,34 +20,6 @@ function useEvictionCheck() {
   useEffect(() => {
     void checkAndRepair()
   }, [])
-}
-
-async function checkAndRepair(): Promise<void> {
-  const count = await db.sleepDays.count()
-  if (count > 0) return // data intact — nothing to recover
-
-  // Dexie's Table<MetaEntry, string>.get() already returns MetaEntry | undefined;
-  // no cast needed — the type is inferred from the table's generic parameter.
-  const zipEntry = await db.meta.get('zipBlob')
-  // instanceof narrows MetaEntry's `unknown` value — anything but a real Blob
-  // (corrupted entry, old format) is treated the same as a missing one.
-  if (!(zipEntry?.value instanceof Blob)) {
-    // Both the records and the ZIP are gone (full Safari eviction).
-    // Signal to Onboarding.tsx that a re-import is required.
-    window.dispatchEvent(new CustomEvent('oura:eviction', { detail: 'no-zip' }))
-    return
-  }
-
-  // ZIP blob survived: silently re-import it. No UI involvement needed —
-  // useLiveQuery flips useHasData() as soon as rows land, and until then the
-  // user sees Onboarding, which is accurate ("your data is being restored").
-  // Failures degrade to the no-zip path: the user is asked to re-import manually.
-  try {
-    const { runImport } = await import('@/workers/runImport')
-    await runImport(zipEntry.value)
-  } catch {
-    window.dispatchEvent(new CustomEvent('oura:eviction', { detail: 'no-zip' }))
-  }
 }
 
 // ─── App Root ─────────────────────────────────────────────────────────────────

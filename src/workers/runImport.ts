@@ -29,14 +29,28 @@ export interface ImportProgress {
 // letting JSZip OOM the worker.
 export const MAX_ZIP_BYTES = 200 * 1024 * 1024
 
+// Module-level in-flight lock. Two imports can legitimately race: the Safari
+// eviction recovery in App.tsx fires on boot, and the user can start a manual
+// import at the same moment. Two concurrent workers would interleave bulkPuts
+// into the same tables (and write importStats twice), so concurrent calls
+// coalesce onto the same promise instead of spawning a second worker. The
+// second caller's blob/onProgress are ignored by design — whichever import
+// started first wins, and a genuinely different re-import can be run after it
+// settles.
+let inFlight: Promise<void> | null = null
+
 export function runImport(blob: Blob, onProgress?: (p: ImportProgress) => void): Promise<void> {
+  if (inFlight) return inFlight
+
   if (blob.size > MAX_ZIP_BYTES) {
+    // Rejected before any worker is spawned — deliberately NOT stored as the
+    // in-flight promise, or a wrong-file mistake would block the retry.
     return Promise.reject(
       new Error(`File too large (${String(Math.round(blob.size / 1024 / 1024))} MB, max 200 MB)`),
     )
   }
 
-  return new Promise((resolve, reject) => {
+  const run = new Promise<void>((resolve, reject) => {
     const worker = new Worker(new URL('./import.worker.ts', import.meta.url), {
       type: 'module',
     })
@@ -67,4 +81,11 @@ export function runImport(blob: Blob, onProgress?: (p: ImportProgress) => void):
 
     worker.postMessage({ type: 'start', payload: { blob } })
   })
+
+  // Release the lock on settle (success or failure) so a later import — e.g.
+  // the user re-importing a fresh export — starts a new worker.
+  inFlight = run.finally(() => {
+    inFlight = null
+  })
+  return inFlight
 }
