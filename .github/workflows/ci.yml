@@ -1,9 +1,9 @@
 # CI/CD pipeline.
 #
-# Shape (trunk-based, deploy gated on green):
-#   typecheck → lint → test ─┬→ build ──────────┬→ deploy-prod (main only) → smoke
-#                            └→ e2e ────────────┘
-#                                build (PR) ────→ deploy-preview (PRs only)
+# Shape (trunk-based, deploy gated on green, candidate→promote):
+#   typecheck ─┬→ lint → test ─┬→ build ─┬→ deploy-candidate → smoke-candidate
+#   audit ─────┘               └→ e2e ───┘        → deploy-prod → smoke-prod (main only)
+#                                  build (PR) ───→ deploy-preview (PRs only)
 #
 # Policy decisions (see docs/TECHNICAL_SPEC.md):
 # - Direct pushes to main are allowed, but production deploys ONLY from a green
@@ -23,11 +23,18 @@ on:
   pull_request:
     branches:
       - main # gate merges to main
+  # Manual re-run from the Actions tab: lets any commit on main be re-delivered
+  # end-to-end. The build job runs fresh on dispatch, so the 7-day dist artifact
+  # expiry never blocks a re-deploy of an old commit.
+  workflow_dispatch:
 
 # A branch with an open PR would otherwise run the whole pipeline twice
 # (push + pull_request); newer pushes should also cancel superseded runs.
+# The group key must resolve to the SAME string for both event types:
+# push gives ref=refs/heads/<branch> and no PR number; pull_request gives the
+# PR number. head_ref||ref never matched across the two, so dedupe never fired.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -53,6 +60,27 @@ jobs:
 
       - name: Run TypeScript type-check
         run: npm run typecheck
+
+  # ── 1b. Dependency audit ──────────────────────────────────────────────────
+  # Production deps only, high severity and above: dev tooling advisories are
+  # overwhelmingly noise (they never ship to users), but a high/critical vuln
+  # in code that DOES ship must block the deploy chain. Runs in parallel with
+  # typecheck; the deploy jobs `needs` it.
+  audit:
+    name: Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22 (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
 
   # ── 2. Lint ───────────────────────────────────────────────────────────────
   lint:
@@ -197,19 +225,75 @@ jobs:
           path: dist
 
       - name: Deploy to Cloudflare Pages (preview)
-        uses: cloudflare/wrangler-action@v3
+        # Pinned to a full commit SHA so a moved/compromised tag can't swap the
+        # action under us — it handles our Cloudflare API token.
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=unofficial-oura-pwa --branch=${{ github.head_ref }}
 
-  # ── 7. Deploy production (main) ───────────────────────────────────────────
+  # ── 7. Deploy candidate (main) ────────────────────────────────────────────
+  # Candidate→promote: the tested dist is first deployed to a non-production
+  # branch alias and smoke-tested THERE. Only if the candidate passes smoke is
+  # the same artifact promoted to production. Smoke-before-activation means
+  # users can never see a build that fails smoke — with the old shape, a bad
+  # deploy was live for the whole window between deploy and the smoke failure.
+  deploy-candidate:
+    name: Deploy candidate
+    runs-on: ubuntu-latest
+    # The gate: every quality job must be green before anything ships.
+    needs: [lint, e2e, build, audit]
+    # push-to-main OR a manual re-delivery of a main commit via workflow_dispatch.
+    if: >-
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Download dist
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Deploy to Cloudflare Pages (candidate)
+        # Pinned to a full commit SHA so a moved/compromised tag can't swap the
+        # action under us — it handles our Cloudflare API token.
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=unofficial-oura-pwa --branch=prod-candidate
+
+  # ── 8. Smoke test the candidate ───────────────────────────────────────────
+  # Same probes as production smoke, but against the candidate alias — this is
+  # the promotion gate, not a post-hoc alarm.
+  smoke-candidate:
+    name: Smoke test (candidate)
+    runs-on: ubuntu-latest
+    needs: deploy-candidate
+    steps:
+      - name: Probe candidate endpoints
+        run: |
+          set -e
+          base="https://prod-candidate.unofficial-oura-pwa.pages.dev"
+          for path in "/" "/sleep/2026-01-01" "/manifest.webmanifest" "/sw.js"; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --retry 3 --retry-delay 5 "$base$path")
+            echo "$base$path -> $code"
+            [ "$code" = "200" ] || exit 1
+          done
+          # The shell must actually be our app, not an error page.
+          curl -s "$base/" | grep -q '<div id="root">' || { echo "root div missing"; exit 1; }
+
+  # ── 9. Promote to production ──────────────────────────────────────────────
+  # Deploys the SAME downloaded dist artifact that just passed candidate smoke
+  # — no rebuild, so what was smoke-tested is byte-for-byte what goes live.
   deploy-prod:
     name: Deploy production
     runs-on: ubuntu-latest
-    # The gate: every quality job must be green before anything ships.
-    needs: [lint, e2e, build]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: smoke-candidate
     permissions:
       contents: read
       deployments: write
@@ -221,18 +305,20 @@ jobs:
           path: dist
 
       - name: Deploy to Cloudflare Pages (production)
-        uses: cloudflare/wrangler-action@v3
+        # Pinned to a full commit SHA so a moved/compromised tag can't swap the
+        # action under us — it handles our Cloudflare API token.
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=unofficial-oura-pwa --branch=main
 
-  # ── 8. Post-deploy smoke test ─────────────────────────────────────────────
-  # Verifies the live site actually serves what we shipped: the SPA shell,
-  # a deep link (exercises the SPA fallback), the manifest, and the service
-  # worker. This is the production health check — with no client telemetry
-  # (privacy promise), a failed smoke run is our uptime alarm.
-  smoke:
+  # ── 10. Post-promote smoke test ───────────────────────────────────────────
+  # A true sanity check after activation (the candidate already gated the
+  # promotion): catches promotion-specific failures — alias routing, CDN edge
+  # propagation. With no client telemetry (privacy promise), a failed smoke
+  # run is our uptime alarm.
+  smoke-prod:
     name: Smoke test (production)
     runs-on: ubuntu-latest
     needs: deploy-prod

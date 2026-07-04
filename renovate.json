@@ -1,15 +1,23 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":semanticCommits", "group:allNonMajor"],
+  "extends": ["config:recommended", ":semanticCommits"],
   "schedule": ["before 6am on monday"],
   "labels": ["dependencies"],
   "rangeStrategy": "bump",
   "packageRules": [
     {
-      "description": "Auto-merge safe dev-tooling patch/minor updates once CI is green",
+      "description": "Dev tooling minor/patch in its own group so automerge can fire — grouping them with production deps (group:allNonMajor) made every PR contain non-automergeable deps, so automerge never triggered. NOTE: automerge is only safe once branch protection marks the CI workflow as a required status check (owner action) — until then Renovate merges on 'no failing checks', which passes even if CI never ran.",
+      "groupName": "dev tooling (non-major)",
       "matchDepTypes": ["devDependencies"],
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": true
+    },
+    {
+      "description": "Production deps ship to users — always reviewed by a human, never automerged, even for patches.",
+      "groupName": "production dependencies (non-major)",
+      "matchDepTypes": ["dependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": false
     }
   ]
 }
