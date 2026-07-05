@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    // noUncheckedIndexedAccess: arr[0] becomes T | undefined rather than T.
+    // This catches off-by-one errors in the CSV parsers where a column may
+    // legitimately be absent.
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    // Path alias: import from '@/db/client' instead of '../../db/client'.
+    // Also configured in vite.config.ts via resolve.alias.
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "baseUrl": "."
+  },
+  "include": ["src", "tests", "eslint.config.ts", "vite.config.ts", "vitest.config.ts", "playwright.config.ts", "prettier.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}
