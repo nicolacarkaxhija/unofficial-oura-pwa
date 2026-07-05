@@ -9,7 +9,12 @@ import {
   useReadinessDays,
   useActivityDays,
 } from '@/db/hooks'
-import { computeWeeklyInsight, type WeeklyInsight } from '@/lib/aggregates'
+import {
+  computeStreak,
+  computeWeeklyInsight,
+  type StreakResult,
+  type WeeklyInsight,
+} from '@/lib/aggregates'
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 //
@@ -124,16 +129,19 @@ export default function Dashboard() {
             {
               label: tSleep('title'),
               insight: computeWeeklyInsight(sleepDays),
+              streak: computeStreak(sleepDays),
               color: 'text-blue-500',
             },
             {
               label: tReadiness('title'),
               insight: computeWeeklyInsight(readinessDays),
+              streak: computeStreak(readinessDays),
               color: 'text-indigo-500',
             },
             {
               label: tActivity('title'),
               insight: computeWeeklyInsight(activityDays),
+              streak: computeStreak(activityDays),
               color: 'text-emerald-500',
             },
           ]}
@@ -166,6 +174,7 @@ export default function Dashboard() {
 interface TrendRow {
   label: string
   insight: WeeklyInsight
+  streak: StreakResult
   color: string
 }
 
@@ -181,7 +190,7 @@ function TrendsSection({ rows }: { rows: TrendRow[] }) {
         {t('trends.title')}
       </h2>
       <ul className="space-y-3" data-testid="trends-list">
-        {visible.map(({ label, insight, color }) => (
+        {visible.map(({ label, insight, streak, color }) => (
           <li key={label} className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className={`text-sm font-semibold ${color}`}>{label}</p>
@@ -189,6 +198,15 @@ function TrendsSection({ rows }: { rows: TrendRow[] }) {
                 {t('trends.weeklyAvg')}
                 {insight.best && ` · ${t('trends.best')}: ${String(insight.best.score)}`}
               </p>
+              {/* Days-at-70+ streak, anchored to the newest day on record (the
+                  export is historical, so anchoring on today would always read
+                  0). Hidden when the pillar never crossed the threshold —
+                  "streak: 0 (best 0)" is noise, not insight. */}
+              {streak.longest > 0 && (
+                <p className="text-xs text-slate-400 dark:text-slate-500" data-testid="streak-line">
+                  {t('trends.streak', { current: streak.current, longest: streak.longest })}
+                </p>
+              )}
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-xl font-bold text-slate-900 dark:text-white">

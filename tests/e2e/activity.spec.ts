@@ -63,3 +63,13 @@ test('clicking an activity day navigates to detail with MET chart canvas', async
   const canvas = seededPage.locator('[data-testid="met-chart-canvas"]')
   await expect(canvas).toBeVisible()
 })
+
+test('activity list shows the stress & recovery trend chart', async () => {
+  await seededPage.goto('/activity')
+
+  // The default fixture generates 4 stress readings per day, so the daily
+  // average chart must render (it is skipped only when no stress data exists).
+  await expect(seededPage.locator('[data-testid="stress-trend-section"]')).toBeVisible()
+  await expect(seededPage.locator('[data-testid="stress-trend-chart"]')).toBeVisible()
+  await expect(seededPage.getByText('Stress & recovery — daily average')).toBeVisible()
+})

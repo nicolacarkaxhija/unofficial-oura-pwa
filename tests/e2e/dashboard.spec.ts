@@ -96,3 +96,18 @@ test('trends section shows a 7-day average per pillar with a delta badge', async
   await expect(seededPage.getByText('Trends')).toBeVisible()
   await expect(seededPage.getByText(/Personal best: \d+/).first()).toBeVisible()
 })
+
+test('trends section shows a streak line per pillar', async () => {
+  await seededPage.goto('/')
+
+  const trends = seededPage.locator('[data-testid="trends-list"]')
+  await expect(trends).toBeVisible()
+
+  // Fixture scores: sleep 70–74 and activity 75–79 qualify all 5 consecutive
+  // days; readiness 68–72 only qualifies its newest 3. All three pillars have
+  // longest > 0, so all three rows carry a streak line.
+  const streaks = trends.locator('[data-testid="streak-line"]')
+  await expect(streaks).toHaveCount(3)
+  await expect(streaks.first()).toHaveText('Streak ≥70: 5 days (best 5)')
+  await expect(streaks.nth(1)).toHaveText('Streak ≥70: 3 days (best 3)')
+})

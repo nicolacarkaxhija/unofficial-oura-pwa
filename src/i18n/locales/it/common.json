@@ -12,7 +12,8 @@
   "trends": {
     "title": "Tendenze",
     "weeklyAvg": "Media 7 giorni",
-    "best": "Record personale"
+    "best": "Record personale",
+    "streak": "Serie ≥70: {{current}} giorni (record {{longest}})"
   },
   "range": {
     "label": "Intervallo storico",

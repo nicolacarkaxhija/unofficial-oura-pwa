@@ -19,5 +19,11 @@
   "workouts": "Workouts",
   "meditations": "Meditations",
   "stress": "Stress & recovery",
-  "inactivityAlerts": "Inactivity alerts"
+  "inactivityAlerts": "Inactivity alerts",
+  "stressTrend": {
+    "title": "Stress & recovery — daily average",
+    "stress": "Stress",
+    "recovery": "Recovery",
+    "chartLabel": "Daily average stress and recovery from {{start}} to {{end}}"
+  }
 }

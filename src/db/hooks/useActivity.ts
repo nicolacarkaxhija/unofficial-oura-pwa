@@ -17,6 +17,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db/client'
 import type { ActivityDay, Workout, Meditation, StressPoint } from '@/db/schema'
+import { computeDailyStressAverages, type DailyStressAverage } from '@/lib/aggregates'
 
 /** Returns the most recent `limit` activity days, newest first. */
 export function useActivityDays(limit = 90): ActivityDay[] | undefined {
@@ -77,4 +78,34 @@ export function useMeditationsForDay(date: string): Meditation[] | undefined {
  */
 export function useStressForDay(date: string): StressPoint[] | undefined {
   return useLiveQuery(() => db.stressPoints.where('day').equals(date).sortBy('timestamp'), [date])
+}
+
+/**
+ * Daily average stress/recovery for the most recent `windowDays` days on
+ * record (not counting back from today — exports are historical).
+ *
+ * Query strategy: find the newest stress day, then range-scan the standalone
+ * `day` index from the window's cutoff. This touches only the rows in the
+ * window instead of loading a potentially multi-year stress table (sub-day
+ * resolution makes stressPoints by far the largest table).
+ *
+ * undefined = query in flight; [] = no stress data on record (the caller
+ * skips the chart entirely).
+ */
+export function useDailyStressAverages(windowDays = 90): DailyStressAverage[] | undefined {
+  return useLiveQuery(async () => {
+    const newest = await db.stressPoints.orderBy('day').last()
+    if (!newest) return []
+
+    // Cutoff is windowDays-1 before the newest day, inclusive on both ends.
+    const cutoffDate = new Date(`${newest.day}T00:00:00Z`)
+    cutoffDate.setUTCDate(cutoffDate.getUTCDate() - (windowDays - 1))
+    const cutoff = cutoffDate.toISOString().slice(0, 10)
+
+    const points = await db.stressPoints
+      .where('day')
+      .between(cutoff, newest.day, true, true)
+      .toArray()
+    return computeDailyStressAverages(points, windowDays)
+  }, [windowDays])
 }

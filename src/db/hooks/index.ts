@@ -20,5 +20,6 @@ export {
   useWorkoutsForDay,
   useMeditationsForDay,
   useStressForDay,
+  useDailyStressAverages,
 } from './useActivity'
 export { useImportStats, useHasData } from './useMeta'

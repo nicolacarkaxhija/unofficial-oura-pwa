@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from '@tanstack/react-router'
-import { ScoreHistoryChart } from '@/components/charts'
+import { ScoreHistoryChart, StressTrendChart } from '@/components/charts'
+import { STRESS_COLOR, RECOVERY_COLOR } from '@/components/charts/StressTrendChart'
 import { ScoreRing, LoadingSkeleton, RangeSelector } from '@/components/ui'
-import { useActivityDays } from '@/db/hooks'
+import { useActivityDays, useDailyStressAverages } from '@/db/hooks'
 
 // ─── ActivityList ─────────────────────────────────────────────────────────────
 //
@@ -36,6 +37,10 @@ export default function ActivityList() {
   const [rangeDays, setRangeDays] = useState(90)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const days = useActivityDays(rangeDays)
+  // Stress lives under the activity pillar in this app. A fixed 90-day window
+  // (independent of the score range selector) keeps this a stable at-a-glance
+  // trend instead of a second range-driven chart.
+  const dailyStress = useDailyStressAverages(90)
 
   return (
     <div className="px-4 pt-8 pb-6">
@@ -133,6 +138,39 @@ export default function ActivityList() {
             </button>
           )}
         </>
+      )}
+
+      {/* ── Stress & recovery trend ── rendered outside the score-range branch:
+          stress data can exist even when the activity table is empty (partial
+          exports). Skipped entirely when there is no stress data on record. */}
+      {dailyStress && dailyStress.length > 0 && (
+        <div
+          className="mt-6 rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-800"
+          data-testid="stress-trend-section"
+        >
+          <p className="mb-2 text-xs font-semibold text-slate-500 uppercase dark:text-slate-400">
+            {t('stressTrend.title')}
+          </p>
+          <StressTrendChart data={dailyStress} />
+          <div className="mt-2 flex gap-4 text-xs text-slate-500 dark:text-slate-400">
+            <span className="flex items-center gap-1.5">
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: STRESS_COLOR }}
+                aria-hidden="true"
+              />
+              {t('stressTrend.stress')}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: RECOVERY_COLOR }}
+                aria-hidden="true"
+              />
+              {t('stressTrend.recovery')}
+            </span>
+          </div>
+        </div>
       )}
     </div>
   )

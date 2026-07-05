@@ -19,5 +19,11 @@
   "workouts": "Allenamenti",
   "meditations": "Meditazioni",
   "stress": "Stress e recupero",
-  "inactivityAlerts": "Avvisi inattività"
+  "inactivityAlerts": "Avvisi inattività",
+  "stressTrend": {
+    "title": "Stress e recupero — media giornaliera",
+    "stress": "Stress",
+    "recovery": "Recupero",
+    "chartLabel": "Media giornaliera di stress e recupero dal {{start}} al {{end}}"
+  }
 }

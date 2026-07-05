@@ -12,7 +12,8 @@
   "trends": {
     "title": "Trends",
     "weeklyAvg": "7-day average",
-    "best": "Personal best"
+    "best": "Personal best",
+    "streak": "Streak ≥70: {{current}} days (best {{longest}})"
   },
   "range": {
     "label": "History range",
