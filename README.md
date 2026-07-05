@@ -1,5 +1,8 @@
 # Unofficial Oura PWA
 
+[![CI](https://github.com/nicolacarkaxhija/unofficial-oura-pwa/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nicolacarkaxhija/unofficial-oura-pwa/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
+
 **View your Oura Ring data without a subscription — private, offline, yours.**
 
 Oura locks most insights behind a monthly subscription, but under **GDPR Article 20** you have the right to your raw data for free. This app turns that export into a full dashboard: sleep, readiness, activity, trends, and personal records — entirely in your browser.
